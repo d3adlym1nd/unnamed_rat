@@ -1,10 +1,10 @@
 #include "Misc.hpp"
 
 namespace Misc{
-	u_int StrToUint(const char *strString){
+	u64 StrToUint(const char *strString){
 			u_int uiLen = StrLen(strString);
 			u_int uiLen2 = uiLen;
-			u_int uiRet = 0;
+			u64 uiRet = 0;
 			for(u_int uiIte0 = 0; uiIte0 < uiLen; uiIte0++){
 					u_int uiTlen = 1;
 					--uiLen2;
@@ -39,10 +39,23 @@ namespace Misc{
 	}
 	
 	void strReplaceSingleChar(std::string& cBuffer, char cOld, char cNew){
-		u_int uiLen = StrLen(cBuffer), iIt = 0;
+		u_int uiLen = StrLen(cBuffer.c_str()), iIt = 0;
 		for(; iIt<uiLen; iIt++){
 			cBuffer[iIt] = cBuffer[iIt] == cOld ? cNew : cBuffer[iIt];
 		}
+	}
+	
+	u64 GetFileSize(std::string strFileName){
+		std::ifstream strmInputFile(strFileName, std::ios::binary);
+		if(!strmInputFile.is_open()){
+			return 0;
+		}
+		std::filebuf *pBuf = strmInputFile.rdbuf();
+		u64 uTmp = 0;
+		uTmp = pBuf->pubseekoff(0, strmInputFile.end, strmInputFile.in);
+		pBuf->pubseekpos(0, strmInputFile.in);
+		strmInputFile.close();
+		return uTmp;
 	}
 	
 }

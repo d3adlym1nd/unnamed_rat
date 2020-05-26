@@ -2,9 +2,10 @@
 #define __MISC
 #include "headers.hpp"
 namespace Misc{
-	u_int StrToUint(const char *strString);
-	u_int StrLen(const char *strString);
-	void strSplit(const std::string& strString, char cDelimiter, std::vector<std::string>& vcOut, int iMax);
-	void strReplaceSingleChar(std::string& cBuffer, char cOld, char cNew);
+	u64 StrToUint(const char*);
+	u_int StrLen(const char*);
+	void strSplit(const std::string&, char, std::vector<std::string>&, int);
+	void strReplaceSingleChar(std::string&, char, char);
+	u64 GetFileSize(std::string);
 }
 #endif

