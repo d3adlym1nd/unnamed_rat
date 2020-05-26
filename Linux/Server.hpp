@@ -30,7 +30,7 @@ class Server{
 		~Server(){
 			
 		}
-		int ssSendBinary(int, const char*);
+		int ssSendBinary(int, const char*, int);
 		int ssRecvBinary(int, char*&, int);
 		int ssSendStr(int, const std::string&);
 		int ssRecvStr(int, std::string&, int);
@@ -48,6 +48,7 @@ class Server{
 		void FreeClient(int);
 		void FreeAllClients();
 		bool DownloadFile(const std::string, int);
+		bool SendFile(const std::string, const std::string, int);
 	};
 	
 void threadListener(Server&);

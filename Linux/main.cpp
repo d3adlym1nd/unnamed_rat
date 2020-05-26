@@ -5,13 +5,13 @@
 #include "Cipher.hpp"
 
 //Just for test specific section
-void test(const char *arg, const char *arg2){
-	LCipher test(arg);
+void test(const char *arg2){
+	LCipher test;
 	char *output = nullptr;
 	char *output2 = nullptr;
 	test.BinaryCipher(arg2, output);
 	output2 = test.BinaryUnCipher(output);
-	std::cout<<"BinaryCipher\n"<<output<<"\nBinaryUncipher\n"<<output2<<'\n';
+	std::cout<<"BinaryCipher\n"<<output<<"END\nBinaryUncipher\n"<<output2<<'\n';
 	std::cout<<"StrCipher\n"<<test.strCipher(arg2)<<"\nStrUncipher\n"<<test.strUnCipher(test.strCipher(arg2))<<'\n';
 	delete[] output2;
 	delete[] output;
@@ -20,7 +20,7 @@ void test(const char *arg, const char *arg2){
 
 
 int main(int argc, char **argv){
-	//test(argv[1], argv[2]);
+	//test(argv[1]);
 	//return 0;
 	if(argc < 2){
 			std::cout<<argv[0]<<" port\n";
