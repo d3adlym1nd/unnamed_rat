@@ -58,4 +58,10 @@ namespace Misc{
 		return uTmp;
 	}
 	
+	void strToLower(std::string& strStr){
+		for(u_int iIt=0; iIt<strStr.length(); iIt++){
+			strStr[iIt] = (strStr[iIt] >= 65 && strStr[iIt] <= 90) ? (strStr[iIt] + 32) : strStr[iIt];
+		}
+	}
+	
 }

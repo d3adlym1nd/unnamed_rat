@@ -26,12 +26,12 @@ int main(int argc, char **argv){
 			std::cout<<argv[0]<<" port\n";
 			return 0;
 	}
-	struct sigaction act;
-	act.sa_handler = SIG_IGN;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = SA_RESTART;
-	sigaction(SIGPIPE, &act, nullptr);
-	
+	//struct sigaction act;
+	//act.sa_handler = SIG_IGN;
+	//sigemptyset(&act.sa_mask);
+	//act.sa_flags = SA_RESTART;
+	//sigaction(SIGPIPE, &act, nullptr);
+	signal(SIGPIPE, SIG_IGN);
 	u_int uiLport = Misc::StrToUint(argv[1]);
 	Server *srvServer = new Server(uiLport);
 	
