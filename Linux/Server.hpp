@@ -43,17 +43,24 @@ class Server{
 		//parsing 
 		void ParseClientCommand(const std::string, int);
 		void ParseMassiveCommand(const std::string);
+		void ParseBasicInfo(char*&, int);
 		
 		//client operation
 		void FreeClient(int);
 		void FreeAllClients();
 		bool DownloadFile(const std::string, int);
-		bool SendFile(const std::string, const std::string, int);
+		bool SendFile(const std::string, const std::string, int, char);
+		
+		//threads
+		void threadListener();
+		void threadMasterCMD();
+		void threadClientPing();
+		void threadRemoteCmdOutput(int);
 	};
 	
-void threadListener(Server&);
-void threadMasterCMD(Server&);
-void threadClientPing(Server&);
+//void threadListener(Server&);
+//void threadMasterCMD(Server&);
+//void threadClientPing(Server&);
 //extract from beej guide
 void *get_int_addr(struct sockaddr *);
 #endif

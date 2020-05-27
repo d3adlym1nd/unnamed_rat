@@ -6,6 +6,7 @@ namespace Misc{
 	u_int StrLen(const char*);
 	void strSplit(const std::string&, char, std::vector<std::string>&, int);
 	void strReplaceSingleChar(std::string&, char, char);
+	void strToLower(std::string&);
 	u64 GetFileSize(std::string);
 }
 #endif
