@@ -1,8 +1,6 @@
 #include "headers.hpp"
-#include "Commands.hpp"
-#include "Misc.hpp"
 #include "Server.hpp"
-#include "Cipher.hpp"
+#include "Misc.hpp"
 
 //Just for test specific section
 void test(const char *arg2){

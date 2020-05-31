@@ -1,4 +1,7 @@
 *.geany
 TODO
-Linux/*.o
-Linux/server
+CodeToFix
+Server/Linux/*.o
+Server/Linux/server
+Client/Linux/*.o
+Client/Linux/client

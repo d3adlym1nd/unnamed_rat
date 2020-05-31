@@ -8,7 +8,7 @@ namespace Misc{
 	void strReplaceSingleChar(std::string&, char, char);
 	void strToLower(std::string&);
 	u64 GetFileSize(std::string);
-	void ProgressBar(u64 value, u64 total);
-	void Free(char*&);
+	void ProgressBar(u64, u64);
+	void Free(char*&, std::size_t);
 }
 #endif
