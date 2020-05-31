@@ -80,9 +80,9 @@ namespace Misc{
         std::cout<<'\r'<<pb<<'['<<value2<<"%]";
 	}
 	
-	void Free(char*& Ptr){
+	void Free(char*& Ptr, std::size_t Size){
 		if(Ptr != nullptr){
-			std::size_t Size = StrLen(Ptr);
+			Size = Size > 0 ? StrLen(Ptr) : Size;
 			memset(Ptr, 0, Size);
 			delete[] Ptr;
 			Ptr = nullptr;

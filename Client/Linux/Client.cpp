@@ -126,7 +126,7 @@ void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocal
 		}
 	}
 	#ifdef _DEBUG
-	std::cout<<"Transfer done\n";
+	std::cout<<"\nTransfer done "<<uTotalBytes<<" bytes\n";
 	#endif
 	strmOutputFile.close();
 	Misc::Free(cFileBuffer, iBufferSize);
@@ -263,7 +263,7 @@ int Client::ssRecvBinary(char*& cOutput, int sBytes){
 	cOutput = txtCipher.BinaryUnCipher((const char *)cBuffer);
 	#ifdef _DEBUG_CONNECTION
 	std::cout<<"< "<<cOutput<<'\n';
-	std::cout<<"Ciphered<<"cBuffer<<'\n';
+	//std::cout<<"Ciphered<<"<<cBuffer<<'\n';
 	#endif
 	delete[] cBuffer;
 	cBuffer = nullptr;

