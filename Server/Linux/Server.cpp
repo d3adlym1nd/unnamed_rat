@@ -200,26 +200,27 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					if(ssSendBinary(Clients[iClientID]->sckSocket, strCommandLine.c_str(), 0) > 0){
 						//receive confirmation that program is spawned
 						char *cConfirm = nullptr;
-						if(ssRecvBinary(Clients[iClientID]->sckSocket, cConfirm, 4) > 0){
-								//if(strcmp(cConfirm, "1@1") == 0){							--  uncomment this to test with client
-									//spawn thread to receive output from shell             --     ""      ""  ""  ""   ""   ""
+						if(ssRecvBinary(Clients[iClientID]->sckSocket, cConfirm, 6) > 0){
+								std::cout<<"response "<<cConfirm<<'\n';
+								if(cConfirm[0] == 'x' && cConfirm[1] == '@' && cConfirm[2] == '1'){						
+									//spawn thread to receive output from shell           
 									isReadingShell = true;
 									std::thread thCmd(&Server::threadRemoteCmdOutput, this, iClientID);
+									char cCmdLine[1024];
+									int icLen = 0;
 									while(isReadingShell){
-										std::string strShellInput = "";
-										std::getline(std::cin, strShellInput);
+										memset(cCmdLine, 0, 1024);
+										fgets(cCmdLine, 1024, stdin);
 										if(Clients[iClientID] == nullptr){
 											break;
 										}
-										if(strShellInput.length() == 0){
-											continue;
-										}
-										ssSendBinary(Clients[iClientID]->sckSocket, strShellInput.c_str(), 0);
+										icLen = strlen(cCmdLine);
+										send(Clients[iClientID]->sckSocket, cCmdLine, icLen, 0);
 									}
 									thCmd.join();
-								//} else {													--  uncomment this to test with client
-								//	std::cout<<"Shell not spawned\n";						--    ""       ""  ""  ""   ""   ""
-								//}															--    ""       ""  ""  ""   ""   ""
+								} else {													
+									std::cout<<"Shell not spawned\n";					
+								}														
 						} else {
 							std::cout<<"Unable to read response from client\n";
 						}
@@ -881,26 +882,30 @@ void Server::threadClientPing(){
 }
 
 void Server::threadRemoteCmdOutput(int iClientID){
-	if(Clients[iClientID] != nullptr){
-		char *cCmdBuffer = nullptr;
-		int iBytes = 0;
-		while(isReadingShell){
-			iBytes = ssRecvBinary(Clients[iClientID]->sckSocket, cCmdBuffer, 1024);
+	char cCmdBuffer[1024];
+	memset(cCmdBuffer, 0, 1024);
+	int iBytes = 0;
+	while(isReadingShell){
+		if(Clients[iClientID] != nullptr){
+			//iBytes = ssRecvBinary(Clients[iClientID]->sckSocket, cCmdBuffer, 1024);
+			iBytes = recv(Clients[iClientID]->sckSocket, cCmdBuffer, 1024, 0);
 			if(iBytes > 0){
-				if(Misc::StrLen(cCmdBuffer) == 2 && cCmdBuffer[0] == '#' && cCmdBuffer[1] == 'p'){
+				if(cCmdBuffer[0] == 'x' && cCmdBuffer[1] == '@' && cCmdBuffer[2] == '2'){
 					//end reading remote output
+					isReadingShell = false;
 					break;
 				}
 				std::cout<<cCmdBuffer;
-				delete[] cCmdBuffer;
+				memset(cCmdBuffer, 0, iBytes);
+			} else if(iBytes == -1){
+				std::cout<<"Socket error\n";
+				error();
+				break;
 			}
+		} else {
+			std::cout<<"client doesnt exist or is not connected anymore\n";
+			break;
 		}
-		if(cCmdBuffer != nullptr){
-			delete[] cCmdBuffer;
-			cCmdBuffer = nullptr;
-		}
-	} else {
-		std::cout<<"thread not spawned client doesnt exist or is not connected\n";
 	}
 }
 

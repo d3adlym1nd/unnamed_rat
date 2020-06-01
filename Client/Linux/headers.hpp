@@ -17,6 +17,7 @@
 #include<unistd.h>
 
 #include<sys/socket.h>
+#include<sys/wait.h>
 #include<arpa/inet.h>
 #include<netinet/in.h>
 #include<netdb.h>
