@@ -21,6 +21,7 @@ class LCipher{
 	std::string strUnCipher(const std::string&);
 	int BinaryCipher(const char*, char*&);
 	char *BinaryUnCipher(const char*);
+	std::string ShellXor(const std::string, const std::string);
 };
 
 #endif

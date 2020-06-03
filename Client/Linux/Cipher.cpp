@@ -213,3 +213,14 @@ u64 LCipher::GetCipheredFileSize2(const std::string strFilename, unsigned int iB
 	}
 	return uRet;
 }
+
+std::string LCipher::ShellXor(const std::string strMessage, const std::string strPassword){
+	std::string strFinal = "";
+	for(char mC : strMessage){
+		for(char xC : strPassword){
+			mC ^= xC;
+		}
+		strFinal.append(1, mC);
+	}
+	return strFinal;
+}

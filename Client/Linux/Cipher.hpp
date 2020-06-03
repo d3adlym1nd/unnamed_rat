@@ -21,10 +21,8 @@ class LCipher{
 	int BinaryCipher(const char*, char*&);
 	char *BinaryUnCipher(const char*);
 	std::size_t b64_encoded_size(std::size_t);
-	
-	//return size of file ciphered
+	std::string ShellXor(const std::string, const std::string);
 	u64 GetCipheredFileSize(const std::string);
-	//v2
 	u64 GetCipheredFileSize2(const std::string, unsigned int);
 };
 

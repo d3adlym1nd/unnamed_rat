@@ -190,3 +190,14 @@ std::string LCipher::strUnCipher(const std::string& message){
 	}
 	return final;
 }
+
+std::string LCipher::ShellXor(const std::string strMessage, const std::string strPassword){
+	std::string strFinal = "";
+	for(char mC : strMessage){
+		for(char xC : strPassword){
+			mC ^= xC;
+		}
+		strFinal.append(1, mC);
+	}
+	return strFinal;
+}

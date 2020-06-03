@@ -15,6 +15,7 @@
 #include<csignal>
 #include<ctime>
 #include<unistd.h>
+#include<fcntl.h>
 
 #include<sys/socket.h>
 #include<sys/wait.h>
