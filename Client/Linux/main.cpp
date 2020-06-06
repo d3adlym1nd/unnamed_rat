@@ -2,29 +2,9 @@
 #include "Client.hpp"
 
 #include "Misc.hpp"
-/*void test(const char *arg2){
-	LCipher test;
-	char *output = nullptr;
-	char *output2 = nullptr;
-	test.BinaryCipher(arg2, output);
-	output2 = test.BinaryUnCipher(output);
-	std::cout<<"BinaryCipher\n"<<output<<"END\nBinaryUncipher\n"<<output2<<'\n';
-	std::cout<<"StrCipher\n"<<test.strCipher(arg2)<<"\nStrUncipher\n"<<test.strUnCipher(test.strCipher(arg2))<<'\n';
-	std::cout<<"BinaryCipher size: "<<Misc::StrLen(output)<<'\n';
-	delete[] output2;
-	delete[] output;
-}*/
 
-void test(const char *argv){
-	LCipher test;
-	std::cout<<"Size normal is     : "<<Misc::GetFileSize(argv)<<'\n';
-	std::cout<<"Encoded size v1 is : "<<test.GetCipheredFileSize(argv)<<'\n';
-	std::cout<<"Encoded size v2 is : "<<test.GetCipheredFileSize2(argv, 1024)<<'\n';
-}
 
-int main(/*int argc, char **argv*/){
-	//test(argv[1]);
-	//return 0;
+int main(){
 	signal(SIGPIPE, SIG_IGN);
 	Client *Cli = new Client;
 	char *cBuffer = nullptr;

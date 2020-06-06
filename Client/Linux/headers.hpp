@@ -23,6 +23,9 @@
 #include<netinet/in.h>
 #include<netdb.h>
 
+#include<openssl/ssl.h>
+#include<openssl/err.h>
+
 #ifdef _DEBUG
 #include<errno.h>
 extern int errno;

@@ -8,7 +8,7 @@ namespace CommandCodes{
 	c_char cReqOS[] 				= "c@0";
 	c_char cReqBasicInfo[]			= "i@0";
 	c_char cReqFullInfo[]			= "i@1";
-	c_char cClose[] 				= "s@0";
+	c_char cClose[] 				= "s@0@0";
 	c_char cShellError[]			= "x@0";
 	c_char cShell[] 				=  "x@";
 	c_char cDownload[]				=  "d@";

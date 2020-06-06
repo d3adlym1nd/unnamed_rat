@@ -12,9 +12,8 @@ struct Client_Struct{
 	bool isConnected;
 };
 
-class Server{
+class Server: public LCipher{
 	private:
-		LCipher txtCipher;
 		std::mutex mtxMutex;
 	public:		
 		struct Client_Struct *Clients[Max_Clients];

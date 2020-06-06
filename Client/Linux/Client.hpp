@@ -2,10 +2,10 @@
 #define __CLIENT
 #include "headers.hpp"
 #include "Cipher.hpp"
+#include "HttpDownload.hpp"
 
-class Client{
+class Client: public LCipher, public Downloader{
 	private:
-		LCipher txtCipher;
 		std::mutex mtxMutex;
 		int sckSocket;
 	public:

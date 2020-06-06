@@ -3,7 +3,7 @@
 #include "headers.hpp"
 
 class LCipher{
-   private:
+   protected:
 	std::size_t b64_decoded_size(const char*);
 	int b64_valid_char(char);
 	char *b64_encode(const char*, std::size_t);
