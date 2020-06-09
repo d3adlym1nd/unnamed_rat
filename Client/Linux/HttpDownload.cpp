@@ -142,7 +142,7 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 			
 			if(iBytesReaded > 0){
 				cBuffer[iBytesReaded] = '\0';
-				//procede to check and follow all redirection
+				//proceed to check and follow all redirection
 				strTmpResponse = cBuffer;
 				if(strTmpResponse.find("HTTP/1.1 200 ") != std::string::npos){
 					//ok proceed to download
