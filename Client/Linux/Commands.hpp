@@ -7,8 +7,7 @@ namespace CommandCodes{
 	c_char cFileError[]				= "f@0";
 	c_char cFileSize[]				=  "01";
 	c_char cReqOS[] 				= "c@0";
-	c_char cReqBasicInfo[]			= "i@0";
-	c_char cReqFullInfo[]			= "i@1";
+	c_char cReqInfo[]				=  "i";
 	c_char cClose[] 				= "s@0";
 	c_char cShellRunning[]			= "x@1";
 	c_char cShellError[]			= "x@0";
