@@ -678,8 +678,8 @@ void Server::threadListener(){
 				FreeClient(iClientCount);
 				continue;
 			}
-			//request os to client
-			if(SSL_write(Clients[iClientCount]->sslSocket, CommandCodes::cReqOS, 3) > 0){
+			
+			//if(SSL_write(Clients[iClientCount]->sslSocket, CommandCodes::cReqOS, 3) > 0){
 				char cTmpBuffer[20];
 				int iBytes = SSL_read(Clients[iClientCount]->sslSocket, cTmpBuffer, 19);
 				if(iBytes > 0){
@@ -688,7 +688,7 @@ void Server::threadListener(){
 				} else {
 					Clients[iClientCount]->strOS = "unkn0w";
 				}
-			}
+			//}
 			
 			//save obtained ip on client struct
 			if(strTMPip != nullptr){
