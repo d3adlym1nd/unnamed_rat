@@ -13,7 +13,7 @@ int main(int argc, char **argv){
 	signal(SIGPIPE, SIG_IGN);
 	u_int uiLport = Misc::StrToUint(argv[1]);
 	Server *srvServer = new Server(uiLport);
-	
+	srvServer->NullClients();
 	if(srvServer->Listen(10)){
 			srvServer->thStartHandler();
 	}

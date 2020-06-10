@@ -16,7 +16,7 @@ class Server{
 		std::mutex mtxMutex;
 		SSL_CTX *sslCTX;
 	public:		
-		struct Client_Struct *Clients[Max_Clients] = {nullptr};
+		struct Client_Struct *Clients[Max_Clients];
 		int sckMainSocket = 0;
 		int iClientsOnline = 0;
 		u_int uiLocalPort = DefaultPort;
@@ -43,6 +43,7 @@ class Server{
 		void ParseBasicInfo(char*&, int);
 		
 		//client operation
+		void NullClients();
 		void FreeClient(int);
 		void FreeAllClients();
 		bool DownloadFile(const std::string, int);

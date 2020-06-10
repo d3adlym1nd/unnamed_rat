@@ -18,6 +18,9 @@ class Client: public Downloader{
 			if(sslCTX){
 				SSL_CTX_free(sslCTX);
 			}
+			if(sslSocket){
+				SSL_free(sslSocket);
+			}
 			close(sckSocket);
 		}
 		bool ParseCommand(char*&);

@@ -80,22 +80,19 @@ void Cpu(char*& cProcessor, char*& cCpuCores){
 			if((iLocation = strTmp.find("model name")) != std::string::npos){
 				if((nLocation = strTmp.find('\n', iLocation)) != std::string::npos){
 					if((aLocation = strTmp.find(':', iLocation)) != std::string::npos){
-						//std::cout<<"Model name : "<<strTmp.substr(aLocation+2, nLocation - aLocation-2)<<'\n';
 						strModel = strTmp.substr(aLocation+2, nLocation - aLocation-2);
 						if((iLocation = strTmp.find("cpu cores")) != std::string::npos){
 							if((nLocation = strTmp.find('\n', iLocation)) != std::string::npos){
 								if((aLocation = strTmp.find(':', iLocation)) != std::string::npos){
-									//std::cout<<"Cpu Cores : "<<strTmp.substr(aLocation+2, nLocation - aLocation-2)<<'\n';
 									strCpuCores = strTmp.substr(aLocation+2, nLocation - aLocation-2);
 									strFinal.append(strModel);
 									iLen = strFinal.length();
 									cProcessor = new char[iLen+1];
 									strncpy(cProcessor, strFinal.c_str(), iLen);
-									strFinal.erase(strFinal.begin(), strFinal.end());
-									strFinal = strCpuCores;
-									iLen = strFinal.length();
+									iLen = strCpuCores.length();
 									cCpuCores = new char[iLen+1];
-									strncpy(cCpuCores, strFinal.c_str(), iLen);
+									strncpy(cCpuCores, strCpuCores.c_str(), iLen);
+									cCpuCores[iLen] = '\0';
 								}
 							}
 						}
