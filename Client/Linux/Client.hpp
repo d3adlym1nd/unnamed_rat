@@ -7,12 +7,19 @@ class Client: public Downloader{
 	private:
 		std::mutex mtxMutex;
 		int sckSocket;
+		SSL_CTX *sslCTX;
 	public:
+		SSL *sslSocket;
 		volatile bool isKeepRunning = true;
 		volatile bool isRunningShell = false;
 		bool Connect(c_char*, c_char*);
 		void CloseConnection();
-		
+		~Client(){
+			if(sslCTX){
+				SSL_CTX_free(sslCTX);
+			}
+			close(sckSocket);
+		}
 		bool ParseCommand(char*&);
 		
 		bool SendFile(const std::string);

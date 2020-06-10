@@ -27,7 +27,9 @@
 #include<netdb.h>
 
 #include<openssl/ssl.h>
+#ifdef _DEBUG
 #include<openssl/err.h>
+#endif
 
 #ifdef _DEBUG
 #include<errno.h>

