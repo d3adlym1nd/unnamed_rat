@@ -19,6 +19,9 @@
 #include<netdb.h>
 #include<errno.h>
 
+#include<openssl/ssl.h>
+#include<openssl/err.h>
+
 //Error message
 extern int errno;
 #define error() std::cout<<"Error["<<errno<<"] "<<strerror(errno)<<'\n'

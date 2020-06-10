@@ -1,10 +1,9 @@
 #ifndef __CLIENT
 #define __CLIENT
 #include "headers.hpp"
-#include "Cipher.hpp"
 #include "HttpDownload.hpp"
 
-class Client: public LCipher, public Downloader{
+class Client: public Downloader{
 	private:
 		std::mutex mtxMutex;
 		int sckSocket;
@@ -13,11 +12,6 @@ class Client: public LCipher, public Downloader{
 		volatile bool isRunningShell = false;
 		bool Connect(c_char*, c_char*);
 		void CloseConnection();
-		
-		int ssSendBinary(const char*);
-		int ssRecvBinary(char*&, int);
-		int ssSendStr(const std::string&);
-		int ssRecvStr(std::string&, int);
 		
 		bool ParseCommand(char*&);
 		
