@@ -11,7 +11,7 @@ int main(){
 	SSL_load_error_strings();
 	#endif
 	Client *Cli = new Client;
-	char *cBuffer = nullptr;
+	char *cBuffer = new char[1024];
 	while(Cli->isKeepRunning){
 		if(Cli->Connect("127.0.0.1", "31337")){
 			#ifdef _DEBUG
@@ -35,11 +35,8 @@ int main(){
 					} else if(iBytes == -1){
 						Cli->CloseConnection();
 						break;
-					} else {
-						Misc::Free(cBuffer, 0);
 					}
 				}
-				Misc::Free(cBuffer, 0);
 			} else {
 				Cli->CloseConnection();
 			}

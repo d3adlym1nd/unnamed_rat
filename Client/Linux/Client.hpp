@@ -7,9 +7,9 @@ class Client: public Downloader{
 	private:
 		std::mutex mtxMutex;
 		int sckSocket;
-		SSL_CTX *sslCTX;
+		SSL_CTX *sslCTX = nullptr;
 	public:
-		SSL *sslSocket;
+		SSL *sslSocket = nullptr;
 		volatile bool isKeepRunning = true;
 		volatile bool isRunningShell = false;
 		bool Connect(c_char*, c_char*);

@@ -2,6 +2,41 @@
 #include "Misc.hpp"
 #include "Info.hpp"
 
+bool isNormalShell(const std::string strShell){
+	const char strShells[6][6] = {"bash", "sh", "zsh", "ksh", "dash", "rbash"};
+	for(int iIt = 0; iIt<6; iIt++){
+		if(strShell.find(strShells[iIt]) != std::string::npos){
+			return true;
+		}
+	}
+	return false;
+}
+
+void Users(std::vector<struct sUsers>& vcOutput){
+	std::ifstream strmFile("/etc/passwd");
+	if(strmFile.is_open()){
+		char cBuffer[10240];
+		strmFile.read(cBuffer, 10240);
+		int iBytes = strmFile.gcount();
+		if(iBytes > 0){
+			cBuffer[iBytes] = '\0';
+			std::vector<std::string> vcTmp;
+			Misc::strSplit(cBuffer, '\n', vcTmp, 100);
+			for(int iIt = 0; iIt<int(vcTmp.size()); iIt++){
+				std::vector<std::string> vcTmp1;
+				Misc::strSplit(vcTmp[iIt].c_str(), ':', vcTmp1, 8);
+				if(isNormalShell(vcTmp1[vcTmp1.size()-1].c_str())){
+					struct sUsers sTmp;
+					strncpy(sTmp.cUsername, vcTmp1[0].c_str(), 29);
+					strncpy(sTmp.cShell, vcTmp1[vcTmp1.size()-1].c_str(), 127);
+					vcOutput.push_back(sTmp);
+				}
+			}
+		}
+		strmFile.close();
+	}
+}
+
 void Partitions(std::vector<struct sPartition>& vcOutput){
 	std::ifstream strmFile("/proc/partitions");
 	if(strmFile.is_open()){
@@ -165,3 +200,4 @@ int UserName(char*& cOutput){
 	cOutput = new char[30];
 	return getlogin_r(cOutput, 29);
 }
+

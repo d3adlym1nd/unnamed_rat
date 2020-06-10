@@ -268,12 +268,13 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 			if(vcClientCommands.size() == 2){
 				if(vcClientCommands[1] == "-b"){
 					//basic information
-					char cBufferInfo[1024];
+					char *cBufferInfo = new char[1024];
 					int iBytes = 0;
 					if(SSL_write(Clients[iClientID]->sslSocket, CommandCodes::cReqBasicInfo, 3) > 0){
-						if((iBytes = SSL_read(Clients[iClientID]->sslSocket, cBufferInfo, 1023) > 0)){
+						if((iBytes = SSL_read(Clients[iClientID]->sslSocket, cBufferInfo, 1023)) > 0){
 							cBufferInfo[iBytes] = '\0';
-							//ParseBasicInfo(cBufferInfo, Clients[iClientID]->strOS == "Windows" ? 1 : 0);  fix this
+							std::cout<<"Got "<<iBytes<<'\n';
+							ParseBasicInfo(cBufferInfo, Clients[iClientID]->strOS == "Windows" ? 0 : 1);
 						} else {
 							std::cout<<"Unable to retrieve information from client\n";
 							error();
@@ -282,12 +283,14 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 						std::cout<<"Unable to send command to client\n";
 						error();
 					}
+					delete[] cBufferInfo;
+					cBufferInfo = nullptr;
 				} else if(vcClientCommands[1] == "-f"){
 					//full information
 					char cBufferFullInfo[2048];
 					int iBytes = 0;
 					if(SSL_write(Clients[iClientID]->sslSocket, CommandCodes::cReqFullInfo, 3) > 0){
-						if((iBytes = SSL_read(Clients[iClientID]->sslSocket, cBufferFullInfo, 2047) > 0)){
+						if((iBytes = SSL_read(Clients[iClientID]->sslSocket, cBufferFullInfo, 2047)) > 0){
 							cBufferFullInfo[iBytes] = '\0';
 							//here parse full info depending wich os
 							//Clients[iClientID]->strOS == "Linux" ? parsefullinfolinux : parsefullinfowindows
@@ -591,7 +594,7 @@ bool Server::Listen(u_int uiMaxq){
 			continue;
 		}
 		//if reach here everything success
-		fcntl(sckMainSocket, F_SETFL, O_NONBLOCK);
+		//fcntl(sckMainSocket, F_SETFL, O_NONBLOCK);
 		break;
 	}
 	freeaddrinfo(strctServer);
@@ -603,8 +606,17 @@ bool Server::Listen(u_int uiMaxq){
 	if(sckMainSocket == -1 || strctP == nullptr){
 		return false;
 	}
-	sslCTX = SSL_CTX_new(TLS_server_method());
+	sslCTX = SSL_CTX_new(SSLv23_server_method());
 	if(sslCTX == nullptr){
+		ERR_print_errors_fp(stderr);
+		return false;
+	}
+	if(SSL_CTX_use_certificate_file(sslCTX, "../../../cacer.pem", SSL_FILETYPE_PEM) <= 0){
+		std::cout<<"Unable to use certificate\n";
+		ERR_print_errors_fp(stderr);
+		return false;
+	}
+	if(SSL_CTX_use_PrivateKey_file(sslCTX, "../../../privkey.pem", SSL_FILETYPE_PEM) <= 0){
 		ERR_print_errors_fp(stderr);
 		return false;
 	}
@@ -665,6 +677,7 @@ void Server::threadListener(){
 		char *strTMPip = nullptr;
 		int sckTMP = WaitConnection(strTMPip);
 		if(sckTMP != -1){
+			std::cout<<"\nNew connection from "<<strTMPip<<'\n';
 			Clients[iClientCount] = new Client_Struct;
 			if(Clients[iClientCount] == nullptr){
 				std::cout<<"Error allocating memory for new client\n";
@@ -829,6 +842,7 @@ void Server::threadMasterCMD(){
 		//exit program
 		if(vcCommands[0] == "exit"){
 			std::cout<<"bye\n";
+			close(sckMainSocket);
 			break;
 		}
 	}
