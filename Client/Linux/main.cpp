@@ -30,10 +30,14 @@ int main(){
 							Cli->isKeepRunning = false;
 							break;
 						}
-					} else if(iBytes == -1){
-						Cli->CloseConnection();
-						break;
-					}
+					} else {
+						if(!Cli->CheckSslReturnCode(iBytes)){
+							Cli->CloseConnection();
+							break;
+						} 
+						//everything ok jus wait for data to arrive
+						usleep(100000);
+					} 
 				}
 			} else {
 				Cli->CloseConnection();
@@ -44,7 +48,6 @@ int main(){
 			#else
 			sleep(60);                  
 			#endif
-			break; //remove this
 		}
 	}
 	Misc::Free(cBuffer, 0);

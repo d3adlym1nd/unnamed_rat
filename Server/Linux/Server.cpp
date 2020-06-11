@@ -19,6 +19,7 @@ void Server::mtxUnlock(){
 void Server::FreeClient(int iClientID){
 	if(Clients[iClientID] != nullptr){
 		if(Clients[iClientID]->sslSocket){
+			SSL_shutdown(Clients[iClientID]->sslSocket);
 			SSL_free(Clients[iClientID]->sslSocket);
 		}
 		close(Clients[iClientID]->sckSocket);
@@ -643,6 +644,10 @@ bool Server::Listen(u_int uiMaxq){
 		ERR_print_errors_fp(stderr);
 		return false;
 	}
+	if(!SSL_CTX_check_private_key(sslCTX)){
+		std::cout<<"Error invalid private key\n";
+		return false;
+	}
 	return true;
 }
 		
@@ -924,6 +929,11 @@ void Server::threadRemoteCmdOutput(int iClientID){
 			iBytes = SSL_read(Clients[iClientID]->sslSocket, cCmdBuffer, 1023);
 			if(iBytes > 0){
 				cCmdBuffer[iBytes] = '\0';
+				if(strcmp(cCmdBuffer, CommandCodes::cShellEnd) == 0){
+					std::cout<<"\nRemote shell ends\n";
+					isReadingShell = false;
+					break;
+				}
 				std::cout<<cCmdBuffer;
 			} else if(iBytes == -1){
 				std::cout<<"Socket error\n";

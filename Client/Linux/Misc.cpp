@@ -45,6 +45,15 @@ namespace Misc{
 		}
 	}
 	
+	bool FileExists(const char* cFileName){
+		std::ifstream strmFile(cFileName, std::ios::binary);
+		if(!strmFile.is_open()){
+			return false;
+		}
+		strmFile.close();
+		return true;
+	}
+	
 	u64 GetFileSize(std::string strFileName){
 		std::ifstream strmInputFile(strFileName, std::ios::binary);
 		if(!strmInputFile.is_open()){
@@ -76,7 +85,6 @@ namespace Misc{
                 pb[h] = '_';
         }
         pb[50] = '\0';
-        //printf("\r%s[%i%%]", pb, value2);
         std::cout<<'\r'<<pb<<'['<<value2<<"%]";
 	}
 	

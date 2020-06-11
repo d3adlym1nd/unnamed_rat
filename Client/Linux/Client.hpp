@@ -20,12 +20,15 @@ class Client: public Downloader{
 		volatile bool isRunningShell = false;
 		bool Connect(c_char*, c_char*);
 		void CloseConnection();
+		bool CheckSslReturnCode(int);
 		~Client(){
 			if(sslCTX){
 				SSL_CTX_free(sslCTX);
 			}
 			if(sslSocket){
+				SSL_shutdown(sslSocket);
 				SSL_free(sslSocket);
+				sslSocket = nullptr;
 			}
 			close(sckSocket);
 		}
