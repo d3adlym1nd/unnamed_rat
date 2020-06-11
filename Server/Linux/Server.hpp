@@ -43,6 +43,7 @@ class Server{
 		void ParseBasicInfo(char*&, int);
 		
 		//client operation
+		void PrintClientList();
 		void NullClients();
 		void FreeClient(int);
 		void FreeAllClients();

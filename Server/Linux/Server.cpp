@@ -1,6 +1,63 @@
 #include "Server.hpp"
 #include "Misc.hpp"
 #include "Commands.hpp"
+void Server::PrintClientList(){
+	if(iClientsOnline <= 0){
+		std::cout<<"\n\tNo clients online\n";
+		return;
+	}
+	int iMaxLen = 0;
+	for(int iIt2 = 0; iIt2<Max_Clients; iIt2++){
+		if(Clients[iIt2] != nullptr){
+			if(Clients[iIt2]->isConnected){
+				iMaxLen = int(Clients[iIt2]->strIP.length()) > iMaxLen ? int(Clients[iIt2]->strIP.length()) : iMaxLen;
+			}
+		}
+	}
+	std::vector<std::string> vHeaders;
+	vHeaders.push_back("ID");
+	vHeaders.push_back("IP");
+	vHeaders.push_back("OS");
+	int iHeader = vHeaders.size();
+	std::string strPadding = "";
+	std::string strSolidBorder = " +";
+	std::string strCutBorder = " +";
+	strSolidBorder.append(((iMaxLen + 3) * iHeader) -7, '=');
+	strSolidBorder.append(1, '+');
+	strCutBorder.append(((iMaxLen + 3) * iHeader) -7, '-');
+	strCutBorder.append(1, '+');
+	std::cout<<strSolidBorder<<'\n';
+	for(int iIt = 0; iIt<iHeader; iIt++){
+		int iTmpSize = vHeaders[iIt].length();
+		strPadding.erase(strPadding.begin(), strPadding.end());
+		if(iIt == 0){
+			strPadding.append((iMaxLen - iTmpSize) - 6, ' ');
+		} else {
+			strPadding.append(iMaxLen - iTmpSize, ' ');
+		}
+		std::cout<<" | "<<vHeaders[iIt]<<strPadding; //padding goes here
+	}
+	std::cout<<" |\n"<<strSolidBorder<<"\n";
+	for(int iIt3 = 0; iIt3<Max_Clients; iIt3++){
+		if(Clients[iIt3] != nullptr){
+			if(Clients[iIt3]->isConnected){
+				int iTmpSize1 = std::to_string(Clients[iIt3]->iID).length();
+				strPadding.erase(strPadding.begin(), strPadding.end());
+				strPadding.append((iMaxLen - iTmpSize1) -6, ' ');
+				std::cout<<" | "<<Clients[iIt3]->iID<<strPadding;
+				iTmpSize1 = Clients[iIt3]->strIP.length();
+				strPadding.erase(strPadding.begin(), strPadding.end());
+				strPadding.append(iMaxLen - iTmpSize1, ' ');
+				std::cout<<" | "<<Clients[iIt3]->strIP<<strPadding;
+				iTmpSize1 = Clients[iIt3]->strOS.length();
+				strPadding.erase(strPadding.begin(), strPadding.end());
+				strPadding.append(iMaxLen - iTmpSize1, ' ');
+				std::cout<<" | "<<Clients[iIt3]->strOS<<strPadding;
+				std::cout<<" | \n"<<strCutBorder<<'\n';
+			}
+		}
+	}
+}
 
 void Server::NullClients(){
 	for(int iIt = 0; iIt<Max_Clients; iIt++){
@@ -864,19 +921,7 @@ void Server::threadMasterCMD(){
 			}
 			if(vcCommands.size() == 2){ //cli -l
 				if(vcCommands[1] == "-l"){
-					//list connected clients
-					if(iClientsOnline <= 0){
-						std::cout<<"\n\tNo clients online\n";
-						continue;
-					}
-					std::cout<<"\tClients online\n";
-					for(u_int iIt2 = 0; iIt2<Max_Clients; iIt2++){
-						if(Clients[iIt2] != nullptr){
-							if(Clients[iIt2]->isConnected){
-								std::cout<<"\t["<<Clients[iIt2]->iID<<"] "<<Clients[iIt2]->strIP<<" "<<Clients[iIt2]->strOS<<"\n";
-							}
-						}
-					}
+					PrintClientList();
 				}
 			}
 		}

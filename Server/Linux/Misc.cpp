@@ -1,6 +1,7 @@
 #include "Misc.hpp"
 
 namespace Misc{
+	
 	u64 StrToUint(const char *strString){
 			u_int uiLen = StrLen(strString);
 			u_int uiLen2 = uiLen;
@@ -76,7 +77,6 @@ namespace Misc{
                 pb[h] = '_';
         }
         pb[50] = '\0';
-        //printf("\r%s[%i%%]", pb, value2);
         std::cout<<'\r'<<pb<<'['<<value2<<"%]";
 	}
 	

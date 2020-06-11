@@ -22,9 +22,6 @@ int main(){
 					int iBytes = SSL_read(Cli->sslSocket, cBuffer, 1023);
 					if(iBytes > 2){
 						cBuffer[iBytes] = '\0';
-						#ifdef _DEBUG_CONNECTION
-						std::cout<<"Received\n---------------\n"<<cBuffer<<"\n---------------\n";
-						#endif
 						if(!Cli->ParseCommand(cBuffer)){
 							Cli->CloseConnection();
 							Cli->isKeepRunning = false;
@@ -34,8 +31,7 @@ int main(){
 						if(!Cli->CheckSslReturnCode(iBytes)){
 							Cli->CloseConnection();
 							break;
-						} 
-						//everything ok jus wait for data to arrive
+						}
 						usleep(100000);
 					} 
 				}
@@ -50,7 +46,7 @@ int main(){
 			#endif
 		}
 	}
-	Misc::Free(cBuffer, 0);
+	Misc::Free(cBuffer, 1024);
 	delete Cli;
 	Cli = nullptr;
 	return 0;

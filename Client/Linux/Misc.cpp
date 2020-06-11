@@ -90,7 +90,7 @@ namespace Misc{
 	
 	void Free(char*& Ptr, std::size_t Size){
 		if(Ptr != nullptr){
-			Size = Size > 0 ? StrLen(Ptr) : Size;
+			Size = Size > 0 ? Size : StrLen(Ptr);
 			memset(Ptr, 0, Size);
 			delete[] Ptr;
 			Ptr = nullptr;

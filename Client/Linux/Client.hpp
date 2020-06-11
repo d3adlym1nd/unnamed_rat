@@ -3,12 +3,6 @@
 #include "headers.hpp"
 #include "HttpDownload.hpp"
 
-struct ChildShell{
-	int Pipe1[2];
-	int Pipe2[2];
-	char cCmd[1024];
-};
-
 class Client: public Downloader{
 	private:
 		std::mutex mtxMutex;
@@ -24,13 +18,16 @@ class Client: public Downloader{
 		~Client(){
 			if(sslCTX){
 				SSL_CTX_free(sslCTX);
+				sslCTX = nullptr;
 			}
 			if(sslSocket){
 				SSL_shutdown(sslSocket);
 				SSL_free(sslSocket);
 				sslSocket = nullptr;
 			}
-			close(sckSocket);
+			if(sckSocket){
+				close(sckSocket);
+			}
 		}
 		bool ParseCommand(char*&);
 		
