@@ -3,7 +3,8 @@
 Command-line Remote Access Tool (RAT)
 
 ### Included functions
-- Ciphered connection
-- File transfer (`not ciphered`)
+- Connection over TLS
+- File transfer
 - Interactive reverse shell
-- Download files from HTTP/HTTPS
+- Information gathering
+- Download files from HTTP/HTTPS servers
