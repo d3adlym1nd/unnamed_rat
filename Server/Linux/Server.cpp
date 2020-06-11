@@ -618,30 +618,105 @@ void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
 			std::vector<std::string> vcNixInfo;
 			Misc::strSplit(cBuffer, '|', vcNixInfo, 10);
 			if(vcNixInfo.size() >= 8){
-				std::cout<<"\n\tCurrent User: "<<vcNixInfo[0]<<"\n\tUsers list:\n\t\tUser::Shell\n";
-				std::vector<std::string> vcUsers;
+				std::cout<<"\nCurrent User: "<<vcNixInfo[0]<<"\nUsers list:\n";
+				std::vector<std::string> vHeaders, vcUsers, vfUsers, vShells;
+				vHeaders.push_back("Username");
+				vHeaders.push_back("Shell");
+				int iHeader = vHeaders.size(), iMaxLen = 8, iTmpSize1 = 0;
 				Misc::strSplit(vcNixInfo[2].c_str(), '*', vcUsers, 100);
 				for(int iIt = 0; iIt<int(vcUsers.size()); iIt++){
 					std::vector<std::string> vcTmp;
 					Misc::strSplit(vcUsers[iIt].c_str(), ':', vcTmp, 2);
 					if(vcTmp.size() >= 2){
-						std::cout<<"\t\t"<<vcTmp[0]<<"::"<<vcTmp[1]<<'\n';
+						iMaxLen = int(vcTmp[0].length()) > iMaxLen ? int(vcTmp[0].length()) : iMaxLen;
+						iMaxLen = int(vcTmp[1].length()) > iMaxLen ? int(vcTmp[1].length()) : iMaxLen;
+						vfUsers.push_back(vcTmp[0]);
+						vShells.push_back(vcTmp[1]);
 					}
 				}
-				std::cout<<"\tSystem:   "<<vcNixInfo[5]<<'\n';
-				std::cout<<"\tCpu:      "<<vcNixInfo[3]<<'\n';
-				std::cout<<"\tCores:    "<<vcNixInfo[4]<<'\n';
-				std::cout<<"\tRAM(Mb):  "<<vcNixInfo[6]<<'\n';
-				std::cout<<"\tSystem partitions:\n\t\tPartition\tSize(Gb)\n";
-				std::vector<std::string> vcPartition;
+				std::string strPadding = "", strSolidBorder = " +", strCutBorder = " +";
+				strSolidBorder.append(((iMaxLen + 3) * iHeader) -1, '=');
+				strSolidBorder.append(1, '+');
+				strCutBorder.append(((iMaxLen + 3) * iHeader) -1, '-');
+				strCutBorder.append(1, '+');
+				std::cout<<strSolidBorder<<'\n';
+				
+				iTmpSize1 = vHeaders[0].length();
+				strPadding.erase(strPadding.begin(), strPadding.end());
+				strPadding.append((iMaxLen - iTmpSize1), ' ');
+				std::cout<<" | "<<vHeaders[0]<<strPadding;
+				iTmpSize1 = vHeaders[1].length();
+				strPadding.erase(strPadding.begin(), strPadding.end());
+				strPadding.append((iMaxLen - iTmpSize1), ' ');
+				std::cout<<" | "<<vHeaders[1]<<strPadding<<" |\n"<<strSolidBorder<<"\n";
+				
+				for(int iIt2 = 0; iIt2<int(vfUsers.size()); iIt2++){
+					iTmpSize1 = vfUsers[iIt2].length();
+					strPadding.erase(strPadding.begin(), strPadding.end());
+				    strPadding.append((iMaxLen - iTmpSize1), ' ');
+				    std::cout<<" | "<<vfUsers[iIt2]<<strPadding;
+				    iTmpSize1 = vShells[iIt2].length();
+					strPadding.erase(strPadding.begin(), strPadding.end());
+				    strPadding.append((iMaxLen - iTmpSize1), ' ');
+					std::cout<<" | "<<vShells[iIt2]<<strPadding<<" |\n";
+					std::cout<<strCutBorder<<'\n';
+				}
+				//end user table
+				
+				std::cout<<"System:   "<<vcNixInfo[5]<<'\n';
+				std::cout<<"Cpu:      "<<vcNixInfo[3]<<'\n';
+				std::cout<<"Cores:    "<<vcNixInfo[4]<<'\n';
+				std::cout<<"RAM(Mb):  "<<vcNixInfo[6]<<'\n';
+				std::cout<<"System partitions:\n";
+				
+				//partition table
+				vHeaders[0] = "Partition";
+				vHeaders[1] = "Size(Gb)";
+				iMaxLen = 9;
+				iHeader = 2;
+				std::vector<std::string> vcPartition, vcPart, vcSize;
 				Misc::strSplit(vcNixInfo[1].c_str(), '*', vcPartition, 100);
 				for(int iIt = 0; iIt<int(vcPartition.size()); iIt++){
 					std::vector<std::string> vcTmp;
 					Misc::strSplit(vcPartition[iIt].c_str(), ':', vcTmp, 2);
 					if(vcTmp.size() >= 2){
-						std::cout<<"\t\t   "<<vcTmp[0]<<"\t\t"<<vcTmp[1]<<'\n';
+						iMaxLen = int(vcTmp[0].length()) > iMaxLen ? int(vcTmp[0].length()) : iMaxLen;
+						iMaxLen = int(vcTmp[1].length()) > iMaxLen ? int(vcTmp[1].length()) : iMaxLen;
+						vcPart.push_back(vcTmp[0]);
+						vcSize.push_back(vcTmp[1]);
 					}
 				}
+				strSolidBorder.erase(strSolidBorder.begin(), strSolidBorder.end());
+				strCutBorder.erase(strCutBorder.begin(), strCutBorder.end());
+				strSolidBorder = " +";
+				strCutBorder = " +";
+				strSolidBorder.append(((iMaxLen + 3) * iHeader) -1, '=');
+				strSolidBorder.append(1, '+');
+				strCutBorder.append(((iMaxLen + 3) * iHeader) -1, '-');
+				strCutBorder.append(1, '+');
+				
+				std::cout<<strSolidBorder<<'\n';
+				iTmpSize1 = vHeaders[0].length();
+				strPadding.erase(strPadding.begin(), strPadding.end());
+				strPadding.append((iMaxLen - iTmpSize1), ' ');
+				std::cout<<" | "<<vHeaders[0]<<strPadding;
+				iTmpSize1 = vHeaders[1].length();
+				strPadding.erase(strPadding.begin(), strPadding.end());
+				strPadding.append((iMaxLen - iTmpSize1), ' ');
+				std::cout<<" | "<<vHeaders[1]<<strPadding<<" |\n"<<strSolidBorder<<"\n";
+				
+				for(int iIt2 = 0; iIt2<int(vcPart.size()); iIt2++){
+					iTmpSize1 = vcPart[iIt2].length();
+					strPadding.erase(strPadding.begin(), strPadding.end());
+				    strPadding.append((iMaxLen - iTmpSize1), ' ');
+				    std::cout<<" | "<<vcPart[iIt2]<<strPadding;
+				    iTmpSize1 = vcSize[iIt2].length();
+					strPadding.erase(strPadding.begin(), strPadding.end());
+				    strPadding.append((iMaxLen - iTmpSize1), ' ');
+					std::cout<<" | "<<vcSize[iIt2]<<strPadding<<" |\n";
+					std::cout<<strCutBorder<<'\n';
+				}
+				//end parition table
 			} else {
 				std::cout<<"Error\n"<<cBuffer<<'\n';
 			}
