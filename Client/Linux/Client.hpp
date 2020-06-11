@@ -3,6 +3,12 @@
 #include "headers.hpp"
 #include "HttpDownload.hpp"
 
+struct ChildShell{
+	int Pipe1[2];
+	int Pipe2[2];
+	char cCmd[1024];
+};
+
 class Client: public Downloader{
 	private:
 		std::mutex mtxMutex;

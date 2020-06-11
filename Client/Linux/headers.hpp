@@ -19,6 +19,7 @@
 #include<dirent.h>
 #include<fcntl.h>
 #include<sys/utsname.h>
+#include<sys/mman.h>
 
 #include<sys/socket.h>
 #include<sys/wait.h>
@@ -41,5 +42,6 @@ typedef unsigned long long int u64;
 typedef unsigned int u_int;
 typedef unsigned char u_char;
 typedef const char c_char;
+#define STACK_SIZE (2048 * 2048)
 
 #endif

