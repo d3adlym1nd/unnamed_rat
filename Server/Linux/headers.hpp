@@ -24,6 +24,7 @@
 
 //Error message
 extern int errno;
+extern bool bSignalFlag;
 #define error() std::cout<<"Error["<<errno<<"] "<<strerror(errno)<<'\n'
 
 //For colored terminal

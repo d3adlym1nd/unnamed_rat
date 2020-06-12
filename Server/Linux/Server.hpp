@@ -23,7 +23,7 @@ class Server{
 		bool isReceiveThread = false;
 		bool isCmdThread = false;
 		bool isReadingShell = false;
-		Server() : uiLocalPort(DefaultPort){}
+		Server() : uiLocalPort(DefaultPort) {}
 		Server(u_int uiPortNumber) : uiLocalPort(uiPortNumber) {}
 		~Server(){
 			close(sckMainSocket);

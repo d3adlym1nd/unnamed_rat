@@ -12,6 +12,7 @@ class Client: public Downloader{
 		SSL *sslSocket = nullptr;
 		volatile bool isKeepRunning = true;
 		volatile bool isRunningShell = false;
+		bool isRetry = false;
 		bool Connect(c_char*, c_char*);
 		void CloseConnection();
 		bool CheckSslReturnCode(int);

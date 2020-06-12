@@ -26,7 +26,12 @@ bool Client::CheckSslReturnCode(int iRet){
 			std::cout<<"error "<<iTmp<<'\n';
 			ERR_print_errors_fp(stderr);
 			#endif
-			return true;
+			if(!isRetry){
+				sleep(10);
+				isRetry = true;
+			}
+			isRetry = false;
+			return false;
 	}
 	return true;
 }
@@ -249,7 +254,7 @@ void Client::SpawnShell(const std::string strCommand){
 				break;
 			} else {
 				if(iBytes < 0){
-					usleep(2);
+					usleep(100000);
 					continue;
 				}
 			}
