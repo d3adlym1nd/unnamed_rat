@@ -10,6 +10,7 @@ namespace CommandCodes{
 	c_char cReqFullInfo[]			= "i@1";
 	c_char cClose[] 				= "s@0@0";
 	c_char cShellError[]			= "x@0";
+	c_char cShellEnd[]				= "x@2";
 	c_char cShell[] 				=  "x@";
 	c_char cDownload[]				=  "d@";
 	c_char cUpload[]				=  "u@";

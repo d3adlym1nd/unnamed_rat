@@ -1,24 +1,35 @@
 #ifndef __CLIENT
 #define __CLIENT
 #include "headers.hpp"
-#include "Cipher.hpp"
 #include "HttpDownload.hpp"
 
-class Client: public LCipher, public Downloader{
+class Client: public Downloader{
 	private:
 		std::mutex mtxMutex;
 		int sckSocket;
+		SSL_CTX *sslCTX = nullptr;
 	public:
+		SSL *sslSocket = nullptr;
 		volatile bool isKeepRunning = true;
 		volatile bool isRunningShell = false;
+		bool isRetry = false;
 		bool Connect(c_char*, c_char*);
 		void CloseConnection();
-		
-		int ssSendBinary(const char*);
-		int ssRecvBinary(char*&, int);
-		int ssSendStr(const std::string&);
-		int ssRecvStr(std::string&, int);
-		
+		bool CheckSslReturnCode(int);
+		~Client(){
+			if(sslCTX){
+				SSL_CTX_free(sslCTX);
+				sslCTX = nullptr;
+			}
+			if(sslSocket){
+				SSL_shutdown(sslSocket);
+				SSL_free(sslSocket);
+				sslSocket = nullptr;
+			}
+			if(sckSocket){
+				close(sckSocket);
+			}
+		}
 		bool ParseCommand(char*&);
 		
 		bool SendFile(const std::string);
