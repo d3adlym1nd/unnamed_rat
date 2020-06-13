@@ -635,50 +635,8 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 
 void Client::CloseConnection(){
 	close(sckSocket);
-<<<<<<< HEAD
-}
-
-int Client::ssSendStr(const std::string& strMessage){
-	std::string strTmp = strCipher(strMessage);
-	int sBytes = strTmp.length();
-	int iBytes = send(sckSocket, strTmp.c_str(), sBytes, 0);
-	return iBytes;
-}
-
-int Client::ssRecvStr(std::string& strOutput, int sBytes){
-	char *tmpData = new char[sBytes+1];
-	int iBytes = recv(sckSocket, tmpData, sBytes, 0);
-	if(iBytes <= 0){
-		return -1;
-	}
-	strOutput = strUnCipher(std::string(tmpData));
-	delete[] tmpData;
-	tmpData = nullptr;
-	return iBytes;
-}
-
-int Client::ssSendBinary(const char *cData){
-	//char *tmpData = nullptr;
-	//int sBytes = BinaryCipher(cData, tmpData);
-	std::string strFinal = ShellXor(std::string(cData), std::string("password"));
-	int iBytes = send(sckSocket, strFinal.c_str(), strFinal.length(), 0);
-	#ifdef _DEBUG_CONNECTION
-	std::cout<<"> "<<cData<<'\n';
-	#endif
-	//delete[] tmpData;
-	//tmpData = nullptr;
-	return iBytes;
-}
-	
-//delete memory of cOutput after use
-int Client::ssRecvBinary(char*& cOutput, int sBytes){
-	char *cBuffer = new char[sBytes];
-	if(cBuffer == nullptr){
-		return -1;
-=======
 	if(sslSocket){
 		SSL_free(sslSocket);
 		sslSocket = nullptr;
->>>>>>> 5c7331a580c9a45d63ab8edb0e8b1657c99a51c4
 	}
 }

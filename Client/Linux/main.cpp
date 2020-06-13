@@ -2,18 +2,7 @@
 #include "Client.hpp"
 #include "Misc.hpp"
 
-<<<<<<< HEAD
-void test(){
-	
-}
-
 int main(){
-	//test();
-	//return 0;
-=======
-
-int main(){
->>>>>>> 5c7331a580c9a45d63ab8edb0e8b1657c99a51c4
 	signal(SIGPIPE, SIG_IGN);
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();

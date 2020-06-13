@@ -286,17 +286,11 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 			if(vcClientCommands.size() == 2){
 				if(vcClientCommands[1] == "-b"){
 					//basic information
-<<<<<<< HEAD
-					char *cBufferInfo = nullptr;
-					if(ssSendBinary(Clients[iClientID]->sckSocket, CommandCodes::cReqBasicInfo, 0) > 0){
-						if(ssRecvBinary(Clients[iClientID]->sckSocket, cBufferInfo, 1024) > 0){
-=======
 					char *cBufferInfo = new char[1024];
 					int iBytes = 0;
 					if(SSL_write(Clients[iClientID]->sslSocket, CommandCodes::cReqBasicInfo, 3) > 0){
 						if((iBytes = SSL_read(Clients[iClientID]->sslSocket, cBufferInfo, 1023)) > 0){
 							cBufferInfo[iBytes] = '\0';
->>>>>>> 5c7331a580c9a45d63ab8edb0e8b1657c99a51c4
 							ParseBasicInfo(cBufferInfo, Clients[iClientID]->strOS == "Windows" ? 0 : 1);
 						} else {
 							std::cout<<"Unable to retrieve information from client\n";
@@ -612,64 +606,6 @@ void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
 	}	
 }
 
-<<<<<<< HEAD
-int Server::ssSendStr(int sckSocket, const std::string& strMessage){
-	std::string strTmp = strCipher(strMessage);
-	int sBytes = strTmp.length();
-	int iBytes = send(sckSocket, strTmp.c_str(), sBytes, 0);
-	return iBytes;
-}
-
-int Server::ssRecvStr(int sckSocket, std::string& strOutput, int sBytes){
-	char *tmpData = new char[sBytes+1];
-	int iBytes = recv(sckSocket, tmpData, sBytes, 0);
-	if(iBytes <= 0){
-		return -1;
-	}
-	strOutput = strUnCipher(std::string(tmpData));
-	delete[] tmpData;
-	tmpData = nullptr;
-	return iBytes;
-}
-
-int Server::ssSendBinary(int sckSocket, const char* cData, int iBytes){
-	char *tmpData = nullptr;
-	BinaryCipher(cData, tmpData);
-	//Size not specified so calculate length of data to send
-	if(iBytes == 0){
-		iBytes = Misc::StrLen(tmpData);
-	}
-	int tBytes = send(sckSocket, tmpData, iBytes, 0);
-	delete[] tmpData;
-	tmpData = nullptr;
-	return tBytes;
-}
-	
-//delete memory of cOutput after use
-int Server::ssRecvBinary(int sckSocket, char*& cOutput, int sBytes){
-	char *cBuffer = new char[sBytes+1];
-	if(cBuffer == nullptr){
-		return -1;
-	}
-	int iBytes = recv(sckSocket, cBuffer, sBytes, 0);
-	if(iBytes <=0){
-		delete[] cBuffer;
-		cBuffer = nullptr;
-		return -1;
-	}
-	cBuffer[iBytes] = '\0';
-	std::string strTmp = ShellXor(std::string(cBuffer), std::string("password"));
-	int iLen = strTmp.length();
-	cOutput = new char[iLen+1];
-	strncpy(cOutput, strTmp.c_str(), iLen);
-	//cOutput = BinaryUnCipher((const char *)cBuffer);
-	delete[] cBuffer;
-	cBuffer = nullptr;
-	return iBytes;
-}
-
-=======
->>>>>>> 5c7331a580c9a45d63ab8edb0e8b1657c99a51c4
 bool Server::Listen(u_int uiMaxq){
 	int iStat = 0, iYes = 1;
 	const char *cLocalPort = std::string(std::to_string(uiLocalPort)).c_str();
