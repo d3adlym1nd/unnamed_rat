@@ -1,6 +1,6 @@
-LINK=-pthread
+LINK=-pthread -lssl -lcrypto
 CFLAG=-Wall -Wextra -std=c++11 -pedantic -g
-OBJ=main.o Misc.o Cipher.o Server.o
+OBJ=main.o Misc.o Server.o
 BIN=server
 CC=g++
 RM=/bin/rm

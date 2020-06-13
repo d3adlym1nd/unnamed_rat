@@ -5,7 +5,7 @@
 
 class Downloader{
 	protected:
-		int sckSocket;
+		int sckDownloadSocket;
 	public:
 		bool isSSL = false;
 		bool bFlag = false;
