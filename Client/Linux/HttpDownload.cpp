@@ -6,22 +6,24 @@ int Downloader::InitSocket(const char* cHostname, const char* cPort){
 	memset(&strctAd, 0, sizeof(strctAd));
 	strctAd.ai_family = AF_UNSPEC;
 	strctAd.ai_socktype = SOCK_STREAM;
+	strctAd.ai_protocol = IPPROTO_TCP;
+	strctAd.ai_flags = AI_PASSIVE;
 	int iRet = getaddrinfo(cHostname, cPort, &strctAd, &strctServer);
 	if(iRet != 0){
 		#ifdef _DEBUG
-		std::cout<<"getaddrinfo error: "<<gai_strerror(iRet)<<'\n';
+		std::cout<<"Host : "<<cHostname<<":"<<cPort<<" getaddrinfo error: "<<gai_strerror(iRet)<<'\n';
 		#endif
 		return -1;
 	}
 	for(strctP = strctServer; strctP != nullptr; strctP = strctP->ai_next){
-		if((sckSocket = socket(strctP->ai_family, strctP->ai_socktype, strctP->ai_protocol)) == -1){
+		if((sckDownloadSocket = socket(strctP->ai_family, strctP->ai_socktype, strctP->ai_protocol)) == -1){
 			#ifdef _DEBUG
 			std::cout<<"Socker error\n";
 			error();
 			#endif
 			continue;
 		}
-		if(connect(sckSocket, strctP->ai_addr, strctP->ai_addrlen) == -1){
+		if(connect(sckDownloadSocket, strctP->ai_addr, strctP->ai_addrlen) == -1){
 			#ifdef _DEBUG
 			std::cout<<"Error connecting\n";
 			error();
@@ -35,7 +37,7 @@ int Downloader::InitSocket(const char* cHostname, const char* cPort){
 		return -1;
 	}
 	freeaddrinfo(strctServer);
-	return this->sckSocket;
+	return this->sckDownloadSocket;
 }
 
 bool Downloader::Download(const char* cUrl, std::string& strFile){
@@ -51,13 +53,14 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 	unsigned long int uliFileSize = 0, uliResponseTotalBytes = 0, uliBytesSoFar = 0;
 	int iErr = 0, iBytesWrited = 0, iLen = 0, iBytesReaded = 0;
 	char cBuffer[2049], cFileBuffer[2049], cHostname[128], cTmp[128], cRemotePort[7];
+	memset(cRemotePort, 0, 7);
 	char *cToken = nullptr;
 	
 	std::size_t iLocation = 0, iNLocation = 0, HeaderEnd = 0;
 	std::string strTmpFileName = vcUrl[vcUrl.size()-1], strTmpResponse = "", strTmp = "";
 	std::ofstream sFile;
 	
-	SSL *ssl;
+	SSL *ssl = nullptr;
 	
 	if(vcUrl[0] == "https:"){
 		isSSL = true;
@@ -94,7 +97,7 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 			strncpy(cRemotePort, "80", 3);
 		}
 	}
-	
+	std::cout<<"Remote port "<<cRemotePort<<'\n';
 	
 	while(1){ //loop until receive 200 ok to procede download
 		if(InitSocket(cHostname, cRemotePort) == -1){
@@ -111,7 +114,7 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 				bFlag = false;
 				break;
 			}
-			SSL_set_fd(ssl, sckSocket);
+			SSL_set_fd(ssl, sckDownloadSocket);
 			iErr = SSL_connect(ssl);
 			if(iErr == -1){
 				#ifdef _DEBUG
@@ -124,7 +127,7 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 			}
 			iBytesWrited = SSL_write(ssl, (const char *)strHeader.c_str(), iLen);
 		} else {
-			iBytesWrited = send(sckSocket, strHeader.c_str(), iLen , 0);
+			iBytesWrited = send(sckDownloadSocket, strHeader.c_str(), iLen , 0);
 		}
 		
 		if(iBytesWrited > 0){
@@ -132,7 +135,7 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 			if(isSSL){
 				iBytesReaded = SSL_read(ssl, cBuffer, 2048);
 			} else {
-				iBytesReaded = recv(sckSocket, cBuffer, 2048, 0);
+				iBytesReaded = recv(sckDownloadSocket, cBuffer, 2048, 0);
 			}
 			
 			if(iBytesReaded > 0){
@@ -177,7 +180,7 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 							std::cout<<"Unable to open dummy file\n";
 							error();
 							#endif
-							close(sckSocket);
+							close(sckDownloadSocket);
 							bFlag = false;
 							break;
 						}
@@ -188,7 +191,7 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 						if(isSSL){
 							iBytesReaded = SSL_read(ssl, cFileBuffer, 1024);
 						} else {
-							iBytesReaded = recv(sckSocket, cFileBuffer, 1024, 0);
+							iBytesReaded = recv(sckDownloadSocket, cFileBuffer, 1024, 0);
 						}
 						if(iBytesReaded > 0){
 							sFile.write(cFileBuffer, iBytesReaded);
@@ -244,8 +247,8 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 					if(iLocation != std::string::npos){
 						iNLocation = std::string(cBuffer).find('\r', iLocation);
 						if(iNLocation != std::string::npos){
-							if(sckSocket){
-								close(sckSocket);
+							if(sckDownloadSocket){
+								close(sckDownloadSocket);
 							}
 							if(isSSL){
 								SSL_free(ssl);
@@ -343,11 +346,11 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 	}
 	
 	releaseSSL:
-	if(sckSocket){
-		close(sckSocket);
+	if(sckDownloadSocket){
+		close(sckDownloadSocket);
 	}
 	if(isSSL){
-		if(ssl){
+		if(ssl != nullptr){
 			SSL_free(ssl);
 		}
 	}
