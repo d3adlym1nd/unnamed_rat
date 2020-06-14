@@ -54,7 +54,7 @@ namespace Misc{
 		strCutBorder.pop_back();
 		strSolidBorder.append(1, '*');
 		strCutBorder.append(1, '.');
-		std::cout<<strSolidBorder<<"\n | ";
+		std::cout<<strSolidBorder<<"\n |" WhiteBk " " CReset;
 		
 		
 		for(iIt=0; iIt<int(vHeaders.size()); iIt++){
@@ -62,20 +62,30 @@ namespace Misc{
 			iTmp = vHeaders[iIt].length();
 			iTmp2 = iFields[iIt] > iTmp ? (iFields[iIt] - iTmp) : (iTmp -iFields[iIt]);
 			strPadding.append(iTmp2, ' ');
-			std::cout<<vHeaders[iIt]<<strPadding<<" | ";
+			std::cout<<WhiteBk<<vHeaders[iIt]<<strPadding<<" " CReset "|";
+			if((iIt+1) < int(vHeaders.size())){
+				std::cout<<WhiteBk " " CReset;
+			} else {
+				std::cout<<" ";
+			}
 		}
 		std::cout<<"\n"<<strSolidBorder<<"\n";
 		for(iIt=0; iIt<iLine; iIt++){
-			std::cout<<" | ";
+			std::cout<<" |" BrightBlackBk<<" " CReset;
 			strSplit(vLines[iIt], cSplitChar, vcTmp, 100);
 			for(iIt2=0; iIt2<int(vcTmp.size()); iIt2++){
 				strPadding.erase(strPadding.begin(), strPadding.end());
 				iTmp = vcTmp[iIt2].length();
 				iTmp2 = iFields[iIt2] > iTmp ? (iFields[iIt2] - iTmp) : (iTmp < iFields[iIt2]);
 				strPadding.append(iTmp2, ' ');
-				std::cout<<vcTmp[iIt2]<<strPadding<<" | ";
+				std::cout<<BrightBlackBk<<vcTmp[iIt2]<<strPadding<<" " CReset "|";
+				if((iIt2+1) < int(vcTmp.size())){
+					std::cout<<BrightBlackBk " " CReset;
+				} else {
+					std::cout<<" ";
+				}
 			}
-			std::cout<<"\n"<<strCutBorder<<"\n";
+			std::cout<<"\n"<<strSolidBorder<<"\n";
 		}
 	}
 	

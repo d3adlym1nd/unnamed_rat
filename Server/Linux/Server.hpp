@@ -14,7 +14,7 @@ struct Client_Struct{
 class Server{
 	private:
 		std::mutex mtxMutex;
-		SSL_CTX *sslCTX;
+		SSL_CTX *sslCTX = nullptr;
 	public:		
 		struct Client_Struct *Clients[Max_Clients];
 		int sckMainSocket = 0;
@@ -27,7 +27,7 @@ class Server{
 		Server(u_int uiPortNumber) : uiLocalPort(uiPortNumber) {}
 		~Server(){
 			close(sckMainSocket);
-			if(sslCTX){
+			if(sslCTX != nullptr){
 				SSL_CTX_free(sslCTX);
 			}
 		}
