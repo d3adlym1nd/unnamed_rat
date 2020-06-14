@@ -10,15 +10,10 @@ Command-line Remote Access Tool (RAT)
 - Download files from HTTP/HTTPS servers
 
 ## Misc
-To enable colored output uncomment 
+To enable colored output or desktop notification uncomment the followig lines respectively on `headers.hpp` file 
 ```cpp
 #define _COLOR 
-```
-on the `Headers.hpp` file.
-
-To enable desktop notifications uncomment
-```cpp
 #define _NOTIFY
 ```
-on the `Headers.hpp` file. To use this feature you have to install `libnotify-dev` on your system and use the make file `makenotify` locate in the server source directory.
+To use `notify` feature you have to install `libnotify-dev` on your system and use the make file `makenotify` locate in the server source directory.
 Compile with `make -f makenotify`.
