@@ -16,7 +16,7 @@ int main(){
 			#ifdef _DEBUG
 			std::cout<<"Connected!!!\n";
 			#endif
-			if(SSL_write(Cli->sslSocket, "01", 2) > 0){
+			if(SSL_write(Cli->sslSocket, "01", 2) > 0){ //01 linux 00 windows
 				while(1){
 					int iBytes = SSL_read(Cli->sslSocket, cBuffer, 1023);
 					if(iBytes > 2){

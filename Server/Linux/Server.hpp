@@ -55,6 +55,8 @@ class Server{
 		void threadMasterCMD();
 		void threadClientPing();
 		void threadRemoteCmdOutput(int);
+		
+		void Help(const std::string, int);
 	};
 	
 //extract from beej guide

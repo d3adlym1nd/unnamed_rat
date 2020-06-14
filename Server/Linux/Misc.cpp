@@ -40,13 +40,11 @@ namespace Misc{
 				iFieldsSize[iIt][iTmp2++] = 2; //default --
 			}
 		}
-		
-		for(iIt=0; iIt<int(vHeaders.size()); iIt++){
+		for(iIt=0; iIt<iLine+1; iIt++){
 			for(iIt2=0; iIt2<iMaxSize; iIt2++){
 				iFields[iIt2] = iFieldsSize[iIt][iIt2] > iFields[iIt2] ? iFieldsSize[iIt][iIt2] : iFields[iIt2];
 			}
 		}
-		
 		std::string strPadding = "", strSolidBorder = " *", strCutBorder = " .";
 		for(iIt=0; iIt<int(vHeaders.size()); iIt++){
 			strSolidBorder.append(iFields[iIt] + 3, '=');
