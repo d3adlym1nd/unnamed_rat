@@ -2,7 +2,7 @@
 #define __HEADERS
 
 //Uncomment both to make program beautiful
-//#define _COLOR
+#define _COLOR
 //#define _NOTIFY
 
 #include<iostream>

@@ -593,17 +593,17 @@ void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
 			std::vector<std::string> vcNixInfo;
 			Misc::strSplit(cBuffer, '|', vcNixInfo, 10);
 			if(vcNixInfo.size() >= 8){
-				std::cout<<"System:   "<<vcNixInfo[5]<<'\n';
+				std::cout<<Bold0 "System:   "<<vcNixInfo[5]<<'\n';
 				std::cout<<"Cpu:      "<<vcNixInfo[3]<<'\n';
 				std::cout<<"Cores:    "<<vcNixInfo[4]<<'\n';
 				std::cout<<"RAM(Mb):  "<<vcNixInfo[6]<<'\n';
-				std::cout<<"\nCurrent User: "<<vcNixInfo[0]<<"\nUsers list:\n";
+				std::cout<<"\nCurrent User: "<<vcNixInfo[0]<<"\nUsers list:\n" CReset;
 				std::vector<std::string> vHeaders, vcUsers, vfUsers, vShells;
 				vHeaders.push_back("Username");
 				vHeaders.push_back("Shell");
 				Misc::strSplit(vcNixInfo[2].c_str(), '*', vcUsers, 100);
 				Misc::PrintTable(vHeaders, vcUsers, ':');
-				std::cout<<"\nSystem partitions:\n";
+				std::cout<<Bold0 "\nSystem partitions:\n" CReset;
 				vHeaders[0] = "Partition";
 				vHeaders[1] = "Size(Gb)";
 				std::vector<std::string> vcPartitions;
@@ -992,12 +992,16 @@ void Server::Help(const std::string strHelp, int iOS){
 		vHeaders.push_back("Parameter");
 		vHeaders.push_back("About");
 		vHeaders.push_back("Options");
+		vFields.push_back("-l,Display connected users");
 		vFields.push_back("-a,Action to run on selected client,interact / close");
 		vFields.push_back("-c,Client to run selected action,number / *");
 		Misc::PrintTable(vHeaders, vFields, ',');
-		std::cout<<"Ej:  cli -c 0 -a interact  <-- Start interactive session with client 0\n";
-		std::cout<<"     cli -c 0 -a close     <-- Close connection with client 0 and terminate remote process\n";
-		std::cout<<"     cli -c *              <-- Start interactive session with all connected clients\n";
+		std::cout<<"Ej:  cli -c 0 -a interact\n";
+		std::cout<<"     Start interactive session with client 0\n\n";
+		std::cout<<"     cli -c 0 -a close\n";
+		std::cout<<"     Close connection with client 0 and terminate remote process\n\n";
+		std::cout<<"     cli -c *\n";
+		std::cout<<"     Start interactive session with all connected clients\n";
 		return;
 	}
 	if(strHelp == "client"){
