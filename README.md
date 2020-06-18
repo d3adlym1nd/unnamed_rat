@@ -1,4 +1,4 @@
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)[![Platforms: linux-64 | win-64](https://img.shields.io/badge/platform-linux--64%20|%20win--64-blue.svg)]
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)[!Platforms: linux-64 | win-64](https://img.shields.io/badge/platform-linux--64%20|%20win--64-success.svg)
 # unnamed_rat
 Multiplatform Command-line Remote Access Tool (RAT)
 
