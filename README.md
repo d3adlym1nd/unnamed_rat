@@ -6,14 +6,14 @@ Multiplatform Command-line Remote Access Tool (RAT)
 - libssl
 - libnotify `if desktop notifications are enabled`
 
-### Included functions
+### Client Included functions
 - Connection over TLS
 - File transfer
 - Interactive reverse shell
 - Information gathering
-- Download files from HTTP/HTTPS servers
+- Download files from HTTP(S) servers
 
-## Misc
+### Misc
 To enable colored output or desktop notification uncomment the followig lines respectively on `headers.hpp` file 
 ```cpp
 #define _COLOR 
