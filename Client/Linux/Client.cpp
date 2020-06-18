@@ -578,7 +578,7 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 		SSL_free(sslSocket);
 		sslSocket = nullptr;
 	}
-	sslCTX = SSL_CTX_new(SSLv23_client_method());
+	sslCTX = SSL_CTX_new(TLS_client_method());
 	if(sslCTX == nullptr){
 		#ifdef _DEBUG
 		std::cout<<"SSL_CTX_new error\n";

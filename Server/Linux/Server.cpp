@@ -753,6 +753,7 @@ void Server::threadListener(){
 			Clients[iClientCount]->sslSocket = SSL_new(sslCTX);
 			SSL_set_fd(Clients[iClientCount]->sslSocket, Clients[iClientCount]->sckSocket);
 			if(SSL_accept(Clients[iClientCount]->sslSocket) == -1){
+				error();
 				FreeClient(iClientCount);
 				continue;
 			}

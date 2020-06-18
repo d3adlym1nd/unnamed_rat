@@ -23,8 +23,7 @@ int main(int argc, char **argv){
 "                      by " BrightCyan "d3adlym1nd" CReset "\n" ;
     std::cout<<cBanner<<'\n';
 	bSignalFlag = false;
-	SSL_library_init();
-	OpenSSL_add_all_algorithms();
+	OpenSSL_add_ssl_algorithms();
 	SSL_load_error_strings();
 	
 	#ifdef _NOTIFY
