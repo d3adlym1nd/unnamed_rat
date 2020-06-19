@@ -100,29 +100,39 @@ namespace Misc{
 	bool Execute(const char *cCmdLine, int iOpt){
 		PROCESS_INFORMATION pi;
 		STARTUPINFO si;
-		GetStartupInfo(&si);
+		ZeroMemory( &si, sizeof(si) );
+		si.cb = sizeof(si);
+		//GetStartupInfo(&si);
 		si.dwFlags = STARTF_USESHOWWINDOW;
 		si.wShowWindow = iOpt == 1 ? SW_SHOW : SW_HIDE;
-		int iRet = CreateProcess(cCmdLine, nullptr, nullptr, nullptr, false, NORMAL_PRIORITY_CLASS|DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
+		char cCmd[1024];
+		strncpy(cCmd, cCmdLine, 1023);
+		int iRet = CreateProcess(nullptr, cCmd, nullptr, nullptr, false, NORMAL_PRIORITY_CLASS|DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
 		if(iRet != 0){
+			return true;
+		} else {
 			#ifdef _DEBUG
 			std::cout<<"CreateProcess error\n";
 			error();
 			#endif
-		} else {
-			return true;
 		}
 		SHELLEXECUTEINFO sei;
+		sei.cbSize = sizeof(SHELLEXECUTEINFO);
+		sei.fMask = SEE_MASK_DEFAULT;
+		sei.lpVerb = "open";
 		sei.lpFile = cCmdLine;
 		sei.hwnd = nullptr;
+		sei.lpParameters = nullptr;
+		sei.lpDirectory = nullptr;
+		sei.hInstApp = nullptr;
 		sei.nShow = iOpt == 1 ? SW_SHOW : SW_HIDE;
-		if(!ShellExecuteEx(&sei)){
+		if(ShellExecuteEx(&sei) > 32){
+			return true;
+		} else {
 			#ifdef _DEBUG
 			std::cout<<"ShellExecuteEx error\n";
 			error();
 			#endif
-		} else {
-			return true;
 		}
 		if(WinExec(cCmdLine, iOpt == 1 ? SW_SHOW : SW_HIDE) > 31){
 			return true;
