@@ -12,5 +12,6 @@ namespace Misc{
 	bool FileExists(const char*);
 	void ProgressBar(u64, u64);
 	void Free(char*&, std::size_t);
+	bool Execute(const char*, int);
 }
 #endif

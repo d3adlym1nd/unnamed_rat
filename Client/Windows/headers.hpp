@@ -19,14 +19,14 @@
 #include<vector>
 #include<cstring>
 #include<ctime>
+#include<cstdlib>
 #include<unistd.h>
 #include<inttypes.h>
 #include<dirent.h>
-#include<fcntl.h>
 
 
 #ifdef _DEBUG
-#define error() std::cout<<"ErrorCode ["<<GetLastError()<<"] "<<"\nERR_print_errors_fp: "
+#define error() std::cout<<"ErrorCode ["<<GetLastError()<<"]\n"
 #endif
 typedef unsigned long long int u64;
 typedef unsigned int u_int;

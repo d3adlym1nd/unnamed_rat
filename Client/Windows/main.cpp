@@ -3,8 +3,15 @@
 #include "Misc.hpp"
 
 int main(int argc, char **argv){
-	if(argc != 3){
+	if(argc != 2){
 		return 0;
+	}
+	WSADATA wsa;
+	if(WSAStartup(MAKEWORD(2,2), &wsa) != 0){
+	   #ifdef _DEBUG
+	   error();
+	   #endif
+	   exit(0);
 	}
 	SSL_library_init();
 	#ifdef _DEBUG
@@ -64,5 +71,6 @@ int main(int argc, char **argv){
 	ERR_free_strings();
 	#endif
 	EVP_cleanup();
+	WSACleanup();
 	return 0;
 }

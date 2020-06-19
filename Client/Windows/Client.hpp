@@ -1,8 +1,9 @@
 #ifndef __CLIENT
 #define __CLIENT
 #include "headers.hpp"
+#include "HttpDownload.hpp"
 
-class Client{
+class Client: public Downloader{
 	private:
 		std::mutex mtxMutex;
 		SSL_CTX *sslCTX = nullptr;

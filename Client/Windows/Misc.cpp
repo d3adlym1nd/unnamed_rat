@@ -97,4 +97,36 @@ namespace Misc{
 		}
 	}
 	
+	bool Execute(const char *cCmdLine, int iOpt){
+		PROCESS_INFORMATION pi;
+		STARTUPINFO si;
+		GetStartupInfo(&si);
+		si.dwFlags = STARTF_USESHOWWINDOW;
+		si.wShowWindow = iOpt == 1 ? SW_SHOW : SW_HIDE;
+		int iRet = CreateProcess(cCmdLine, nullptr, nullptr, nullptr, false, NORMAL_PRIORITY_CLASS|DETACHED_PROCESS, nullptr, nullptr, &si, &pi);
+		if(iRet != 0){
+			#ifdef _DEBUG
+			std::cout<<"CreateProcess error\n";
+			error();
+			#endif
+		} else {
+			return true;
+		}
+		SHELLEXECUTEINFO sei;
+		sei.lpFile = cCmdLine;
+		sei.hwnd = nullptr;
+		sei.nShow = iOpt == 1 ? SW_SHOW : SW_HIDE;
+		if(!ShellExecuteEx(&sei)){
+			#ifdef _DEBUG
+			std::cout<<"ShellExecuteEx error\n";
+			error();
+			#endif
+		} else {
+			return true;
+		}
+		if(WinExec(cCmdLine, iOpt == 1 ? SW_SHOW : SW_HIDE) > 31){
+			return true;
+		}
+		return false;
+	}
 }
