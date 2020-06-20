@@ -302,10 +302,10 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 	}
 	sslSocket = nullptr;
 	sslCTX = SSL_CTX_new(TLS_client_method());
-	SSL_CTX_set_options(sslCTX, SSL_OP_NO_COMPRESSION | SSL_OP_NO_SSLv2 |SSL_OP_NO_SSLv3);
 	if(!sslCTX){
 		return false;
 	}
+	SSL_CTX_set_options(sslCTX, SSL_OP_NO_COMPRESSION | SSL_OP_NO_SSLv2 |SSL_OP_NO_SSLv3);
 	bioRemote = BIO_new_ssl_connect(sslCTX);
 	if(!bioRemote){
 		#ifdef _DEBUG
