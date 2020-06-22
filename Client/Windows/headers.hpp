@@ -10,6 +10,9 @@
 
 #include<winsock2.h>
 #include<ws2tcpip.h>
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601
+#endif
 #include<windows.h>
 #include<thread>
 #include<mutex>
@@ -20,6 +23,8 @@
 #include<cstring>
 #include<ctime>
 #include<cstdlib>
+#include<intrin.h>
+#include<lm.h>
 #include<unistd.h>
 #include<inttypes.h>
 #include<dirent.h>

