@@ -61,18 +61,31 @@ bool Client::SendInfo(){
                 strFinal.append(std::to_string(vcVec[iIt].dParitionSize));
                 strFinal.append(1, '*');
         }
-                strFinal.append(1, '|');
+        if(vcVec.size() == 0){
+			strFinal.append("err:err*");
+		}
+        strFinal.append(1, '|');
         for(int iIt2 = 0; iIt2<int(vcVec2.size()); iIt2++){
-                //std::cout<<vcVec2[iIt2].cUsername<<'\t'<<vcVec2[iIt2].cShell<<'\n';
                 strFinal.append(vcVec2[iIt2].cUsername);
                 strFinal.append(1, ':');
                 strFinal.append(vcVec2[iIt2].cShell);
                 strFinal.append(1, '*');
         }
+        if(vcVec2.size() == 0){
+			strFinal.append("err:err*");
+		}
         strFinal.append(1, '|');
-        strFinal.append(cCpu);
+        if(cCpu){
+			strFinal.append(cCpu);
+		} else {
+			strFinal.append("Err");
+		}
         strFinal.append(1, '|');
-        strFinal.append(cCores);
+        if(cCores){
+			strFinal.append(cCores);
+		} else {
+			strFinal.append("Err");
+		}
         strFinal.append(1, '|');
         strFinal.append(cUname);
         strFinal.append(1, '|');
@@ -96,14 +109,22 @@ bool Client::SendInfo(){
 				goto TryAgain;
 			}
 		}
-        delete[] cUsername;
-        cUsername = nullptr;
-        delete[] cUname;
-	    cUname = nullptr;
-        delete[] cCpu;
-        cCpu = nullptr;
-        delete[] cCores;
-        cCores = nullptr;
+		if(cUsername){
+	        delete[] cUsername;
+	        cUsername = nullptr;
+		}
+	    if(cUname){
+	        delete[] cUname;
+		    cUname = nullptr;
+		}
+		if(cCpu){
+	        delete[] cCpu;
+	        cCpu = nullptr;
+		}
+		if(cCores){
+	        delete[] cCores;
+	        cCores = nullptr;
+        }
         return bFlag;
 }
 

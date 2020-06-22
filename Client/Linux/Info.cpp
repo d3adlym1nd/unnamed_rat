@@ -167,18 +167,6 @@ int Mem(){
 }
 
 void Uname(char*& cOutput){
-	/*
-	 * struct utsname {
-               char sysname[];     Operating system name (e.g., "Linux") 
-               char nodename[];    Name within "some implementation-defined
-                                     network" 
-               char release[];     Operating system release (e.g., "2.6.28") 
-               char version[];     Operating system version 
-               char machine[];     Hardware identifier 
-           #ifdef _GNU_SOURCE
-               char domainname[];  NIS or YP domain name 
-           #endif
-	 * */
 	int iLen = 0;
 	std::string strTmp = "";
 	struct utsname sInfo;
