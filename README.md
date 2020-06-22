@@ -2,9 +2,12 @@
 # unnamed_rat
 Multiplatform Command-line Remote Access Tool (RAT)
 
-### Dependencies
+### Server Dependencies
 - libssl
-- libnotify `if desktop notifications are enabled`
+- libnotify (Optional) `Desktop notifications`
+
+### Client Dependencies
+- libssl
 
 ### Client Included functions
 - Connection over TLS
@@ -14,10 +17,10 @@ Multiplatform Command-line Remote Access Tool (RAT)
 - Download files from HTTP(S) servers
 
 ### Misc
-To enable colored output or desktop notification uncomment the followig lines respectively on `headers.hpp` file 
+To enable colored output or desktop notification on server uncomment the followig lines respectively on `headers.hpp` file 
 ```cpp
 #define _COLOR 
 #define _NOTIFY
 ```
-To use `notify` feature you have to install `libnotify-dev` on your system and use the make file `makenotify` locate in the server source directory.
+To use `notify` feature you have to install `libnotify` on your system and use the make file `makenotify` locate in the server source directory.
 Compile with `make -f makenotify`.
