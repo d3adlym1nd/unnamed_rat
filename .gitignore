@@ -1,6 +1,5 @@
 *.geany
 TODO
-CodeToFix
 Server/Linux/*.o
 Server/Linux/server
 Client/Linux/*.o
