@@ -10,31 +10,31 @@ void Users(std::vector<struct sUsers>& vcOutput){
 	do{
 	nStatus = NetUserEnum(nullptr, 11, 0, (LPBYTE*)&lUsers, MAX_PREFERRED_LENGTH, &dCount, &dHints, 0);
 	if ((nStatus == NERR_Success) || (nStatus == ERROR_MORE_DATA)){
-	   if ((lTmpuser = lUsers) != nullptr){
-		for (DWORD i = 0; (i < dCount); i++){
-               if (lUsers == NULL){
-                  #ifdef _DEBUG
-                  std::cout<<"An access violation has occurred\n";
-                  error();
-                  #endif
-                  break;
-               }
-               std::wstring st = lTmpuser->usri11_name; 
-			   std::string strTmp(st.begin(), st.end());
-			   if(strTmp != ""){
-				  struct sUsers sUser;
-				  strncpy(sUser.cUsername, strTmp.c_str(), UNLEN);
+        if ((lTmpuser = lUsers) != nullptr){
+            for (DWORD i = 0; (i < dCount); i++){
+                if (lUsers == NULL){
+					#ifdef _DEBUG
+					std::cout<<"An access violation has occurred\n";
+					error();
+					#endif
+					break;
+                }
+                std::wstring st = lTmpuser->usri11_name; 
+			    std::string strTmp(st.begin(), st.end());
+			    if(strTmp != ""){
+					struct sUsers sUser;
+					strncpy(sUser.cUsername, strTmp.c_str(), UNLEN);
 					if(lTmpuser->usri11_priv == USER_PRIV_ADMIN){
-						  sUser.isAdmin = true;
+						sUser.isAdmin = true;
 				    } else {
-						  sUser.isAdmin = false;
+						sUser.isAdmin = false;
 				    }
-				  vcOutput.push_back(sUser);
-			   }
-               lTmpuser++;
+					vcOutput.push_back(sUser);
+			    }
+                lTmpuser++;
             }
-         }
-    	}
+        }
+    }
 	if(lUsers != nullptr){
 		NetApiBufferFree(lUsers);
 		lUsers = nullptr;
@@ -170,8 +170,7 @@ void OS(char*& cOS){
 	auto ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE,TEXT("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"), 0, KEY_QUERY_VALUE, &hKey);
 	if (ret != ERROR_SUCCESS){
 		#ifdef _DEBUG
-		std::cout<<"RegOpenKeyEx Error\n"
-		error();
+		std::cout<<"Ret "<<ret<<"\nError "<<GetLastError()<<"\n";
 		#endif
 		return;
 	}
@@ -194,7 +193,7 @@ void OS(char*& cOS){
 }
 
 int Mem(){
-    MEMORYSTATUSEX mem;
+	MEMORYSTATUSEX mem;
     mem.dwLength = sizeof(mem);
     int iRet = GlobalMemoryStatusEx(&mem);
 

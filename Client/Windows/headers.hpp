@@ -1,6 +1,6 @@
 #ifndef __HEADERS
 #define __HEADERS
-#define _DEBUG
+//#define _DEBUG
 #include<openssl/bio.h>
 #include<openssl/ssl.h>
 #ifdef _DEBUG

