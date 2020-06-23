@@ -272,7 +272,7 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 								SSL_free(ssl);
 							}
 							strTmp = std::string(cBuffer).substr(iLocation +10, iNLocation - iLocation - 10);
-							#ifdef _DefaultConstructibleConcept
+							#ifdef _DEBUG
 							std::cout<<"Redirected to "<<strTmp<<'\n';
 							#endif
 							Misc::strSplit(strTmp.c_str(), '/', vcUrl2, 50);
