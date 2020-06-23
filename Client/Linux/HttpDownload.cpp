@@ -97,7 +97,6 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 			strncpy(cRemotePort, "80", 3);
 		}
 	}
-	std::cout<<"Remote port "<<cRemotePort<<'\n';
 	
 	while(1){ //loop until receive 200 ok to procede download
 		if(InitSocket(cHostname, cRemotePort) == -1){
@@ -121,7 +120,6 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 				std::cout<<"Error establishing SSL connection\n";
 				error();
 				#endif
-				ERR_print_errors_fp(stderr);
 				bFlag = false;
 				break;
 			}
@@ -140,20 +138,29 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 			
 			if(iBytesReaded > 0){
 				cBuffer[iBytesReaded] = '\0';
-				//proceed to check and follow all redirection
 				strTmpResponse = cBuffer;
-				if(strTmpResponse.find("HTTP/1.1 200 ") != std::string::npos){
-					//ok proceed to download
+				if(strTmpResponse.find("HTTP/1.1 200 ") != std::string::npos || strTmpResponse.find("HTTP/1.0 200 ") != std::string::npos){
 					memcpy(cFileBuffer, cBuffer, iBytesReaded);
-					iLocation = std::string(cBuffer).find("Content-Length: ");
+					iLocation = strTmpResponse.find("filename=");
 					if(iLocation != std::string::npos){
-						iNLocation = std::string(cBuffer).find('\r', iLocation);
-						HeaderEnd = std::string(cBuffer).find("\r\n\r\n") + 4;
+						iNLocation = strTmpResponse.find("\r", iLocation);
 						if(iNLocation != std::string::npos){
-							strTmp = std::string(cBuffer).substr(iLocation + 16, (iNLocation - iLocation) - 16);
-							uliFileSize = Misc::StrToUint(strTmp.c_str());
-							uliResponseTotalBytes = uliFileSize + HeaderEnd;
-							std::cout<<"File size is "<<uliFileSize<<'\n';
+							strTmp = strTmpResponse.substr(iLocation +9, (iNLocation - iLocation) - 9);
+							strFile = strTmp;
+						}
+					}
+					if(uliFileSize == 0){
+						iLocation = strTmpResponse.find("Content-Length: ");
+						if(iLocation != std::string::npos){
+							iNLocation = strTmpResponse.find('\r', iLocation);
+							if(iNLocation != std::string::npos){
+								strTmp = strTmpResponse.substr(iLocation + 16, (iNLocation - iLocation) - 16);
+								uliFileSize = Misc::StrToUint(strTmp.c_str());
+								uliResponseTotalBytes = uliFileSize + HeaderEnd;
+								#ifdef _DEBUG
+								std::cout<<"File size is "<<uliFileSize<<'\n';
+								#endif
+							}
 						}
 					}
 					if(uliFileSize == 0){
@@ -164,7 +171,6 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 						break;
 					}
 					
-					//procede here to download an save file
 					//save previous part of file that has been downloaded
 					sFile.open(strTmpFileName, std::ios::binary);
 					strFile = strTmpFileName;
@@ -185,6 +191,7 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 							break;
 						}
 					}
+					HeaderEnd = std::string(cBuffer).find("\r\n\r\n") + 4;
 					sFile.write(&cFileBuffer[HeaderEnd], iBytesReaded - HeaderEnd);
 					uliBytesSoFar = iBytesReaded;
 					while(1){
@@ -243,6 +250,17 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 					}
 				} else if(strTmpResponse.find("HTTP/1.1 301 ") != std::string::npos){
 					//follow redirection
+					iLocation = strTmpResponse.find("Content-Length: ");
+					if(iLocation != std::string::npos){
+						iNLocation = strTmpResponse.find('\r', iLocation);
+						if(iNLocation != std::string::npos){
+							strTmp = strTmpResponse.substr(iLocation + 16, (iNLocation - iLocation) - 16);
+							uliFileSize = Misc::StrToUint(strTmp.c_str());
+							#ifdef _DEBUG
+							std::cout<<"File size is "<<uliFileSize<<'\n';
+							#endif
+						}
+					}
 					iLocation = std::string(cBuffer).find("Location: ");
 					if(iLocation != std::string::npos){
 						iNLocation = std::string(cBuffer).find('\r', iLocation);
@@ -321,7 +339,9 @@ bool Downloader::Download(const char* cUrl, std::string& strFile){
 					}
 				} else {
 					#ifdef _DEBUG
-					std::cout<<"Not handled response code\n"<<cBuffer<<'\n';
+					std::size_t pos = std::string(cBuffer).find("\r\n");
+					std::string strTmp = std::string(cBuffer).substr(0, pos);
+					std::cout<<"Not handled response code\n"<<strTmp<<'\n';
 					#endif
 					bFlag = false;
 					break;

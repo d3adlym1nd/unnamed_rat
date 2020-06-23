@@ -8,7 +8,7 @@ RM=/bin/rm
 %.o: %.cpp
 	$(CC) $(CFLAG) -c -o $@ $<
 $(BIN): $(OBJ)
-	$(CC) $(CFLAG) -o $(BIN) $(OBJ) $(LINK)
+	$(CC) -o $(BIN) $(OBJ) $(LINK)
 clean:
 	$(RM) -f *.o $(BIN)
 

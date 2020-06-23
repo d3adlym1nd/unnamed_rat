@@ -36,21 +36,15 @@ class Server{
 		void thStartHandler();
 		void mtxLock();
 		void mtxUnlock();
-		
-		//parsing 
 		void ParseClientCommand(const std::string, int);
 		void ParseMassiveCommand(const std::string);
 		void ParseBasicInfo(char*&, int);
-		
-		//client operation
 		void PrintClientList();
 		void NullClients();
 		void FreeClient(int);
 		void FreeAllClients();
 		bool DownloadFile(const std::string, int);
 		bool SendFile(const std::string, const std::string, int, char);
-		
-		//threads
 		void threadListener();
 		void threadMasterCMD();
 		void threadClientPing();

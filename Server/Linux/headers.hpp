@@ -57,10 +57,10 @@ extern bool bSignalFlag;
 #define BrightBlackBk ""
 #endif
 
-#define Max_Clients 2
+#define Max_Clients 10
 #define DefaultPort 31337
 
-typedef unsigned long long int u64; //big number
+typedef unsigned long long int u64;
 typedef unsigned int u_int;
 typedef const char c_char;
 typedef unsigned char u_char;

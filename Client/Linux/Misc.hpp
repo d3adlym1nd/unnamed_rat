@@ -10,7 +10,9 @@ namespace Misc{
 	void strToLower(std::string&);
 	u64 GetFileSize(std::string);
 	bool FileExists(const char*);
+	#ifdef _DEBUG
 	void ProgressBar(u64, u64);
+	#endif
 	void Free(char*&, std::size_t);
 }
 #endif

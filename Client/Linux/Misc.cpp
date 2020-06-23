@@ -73,6 +73,7 @@ namespace Misc{
 		}
 	}
 	
+	#ifdef _DEBUG
 	void ProgressBar(u64 value, u64 total){
         int h = 0, hh = 0;
         char pb[101];
@@ -87,6 +88,7 @@ namespace Misc{
         pb[50] = '\0';
         std::cout<<'\r'<<pb<<'['<<value2<<"%]";
 	}
+	#endif
 	
 	void Free(char*& Ptr, std::size_t Size){
 		if(Ptr != nullptr){

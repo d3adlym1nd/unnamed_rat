@@ -1,4 +1,3 @@
-#-lz -ldl -static-libgcc
 LINK=-pthread -lssl -lcrypto
 CFLAG=-Wall -Wextra -std=c++11 -pedantic -g
 OBJ=main.o Misc.o Client.o HttpDownload.o Info.o

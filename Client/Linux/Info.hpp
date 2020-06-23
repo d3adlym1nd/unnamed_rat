@@ -5,7 +5,7 @@
 
 struct sPartition{
 	char cPartition[20];
-	double dParitionSize;  //size is in GB
+	double dParitionSize;
 };
 
 struct sUsers{
@@ -19,7 +19,5 @@ void Cpu(char*&, char*&);
 int Mem();
 void Uname(char*& cOutput);
 int UserName(char*&);
-
-//  /etc/timezone ?
 
 #endif
