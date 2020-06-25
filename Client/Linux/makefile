@@ -1,5 +1,5 @@
 LINK=-pthread -lssl -lcrypto
-CFLAG=-Wall -Wextra -std=c++11 -pedantic -g
+CFLAG=-Wall -Wextra -std=c++11 -pedantic
 OBJ=main.o Misc.o Client.o HttpDownload.o Info.o
 BIN=Client
 CC=g++
@@ -12,5 +12,4 @@ $(BIN): $(OBJ)
 	$(CC) $(CFLAG) -o $(BIN) $(OBJ) $(LINK)
 clean:
 	$(RM) -f *.o $(BIN)
-
 
