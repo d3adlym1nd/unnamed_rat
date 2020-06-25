@@ -29,7 +29,7 @@ Cli->Connect("YOUR HOST", "PORT")
 ```
 with your host and port information. If `#define _DEBUG` is uncommented then host and port information must be passed as arguments from command-line. Build in client root directory with `make`.
 
-### Hot-To (Server)
+### How-To (Server)
 Edit `headers.hpp` and modify the line `#define Max_Clients 10` if you want to handle more than 10 clients. Build in server root directory with `make`.
 
 ### Server Commands
@@ -40,8 +40,8 @@ Type `help`, `?` or `aiuda` at any time (not in reverse shell) to show available
 - help|?|aiuda - Show available commands
 - exit - Finish server
 
-### Client Shell
-- upload - Upload a local file to remote clien
+#### Client Shell
+- upload - Upload a local file to remote client
 - download - Download a remote file from client
 - shell - Spawn an interactive reverse shell on remote client
 - httpd - Force client to download a file from specified url
