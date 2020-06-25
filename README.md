@@ -47,6 +47,7 @@ Type `help`, `?` or `aiuda` at any time (not in reverse shell) to show available
 - httpd - Force client to download a file from specified url
 - info - Retrieve information from client
 - help|?|aiuda - Show available commands
+- exit - Close interactive session
 - More comming...
 
 ## Tested on
