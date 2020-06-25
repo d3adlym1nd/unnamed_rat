@@ -30,6 +30,7 @@ Cli->Connect("YOUR HOST", "PORT")
 with your host and port information. If `#define _DEBUG` is uncommented then host and port information must be passed as arguments from command-line. Build in client root directory with `make`.
 
 ### How-To (Server)
+Generate certificate and private key on server with `openssl req -x509 -newkey rsa:4096 -out cacer.pem -outform PEM -days 1825 -nodes` and place both files `cacer.pem` and `prikvey.pem` on server directory.
 Edit `headers.hpp` and modify the line `#define Max_Clients 10` if you want to handle more than 10 clients. Build in server root directory with `make`.
 
 ### Server Commands

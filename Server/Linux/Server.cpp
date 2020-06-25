@@ -663,12 +663,12 @@ bool Server::Listen(u_int uiMaxq){
 		ERR_print_errors_fp(stderr);
 		return false;
 	}
-	if(SSL_CTX_use_certificate_file(sslCTX, "../../../cacer.pem", SSL_FILETYPE_PEM) <= 0){
+	if(SSL_CTX_use_certificate_file(sslCTX, "./cacer.pem", SSL_FILETYPE_PEM) <= 0){
 		std::cout<<"Unable to use certificate\n";
 		ERR_print_errors_fp(stderr);
 		return false;
 	}
-	if(SSL_CTX_use_PrivateKey_file(sslCTX, "../../../privkey.pem", SSL_FILETYPE_PEM) <= 0){
+	if(SSL_CTX_use_PrivateKey_file(sslCTX, "./privkey.pem", SSL_FILETYPE_PEM) <= 0){
 		ERR_print_errors_fp(stderr);
 		return false;
 	}
