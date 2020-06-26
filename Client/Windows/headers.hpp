@@ -21,7 +21,6 @@
 #include<string>
 #include<vector>
 #include<cstring>
-#include<ctime>
 #include<cstdlib>
 #include<intrin.h>
 #include<lm.h>
