@@ -17,7 +17,7 @@ class Server{
 		SSL_CTX *sslCTX = nullptr;
 	public:		
 		struct Client_Struct *Clients[Max_Clients];
-		int sckMainSocket = 0;
+		int sckMainSocket = -1;
 		int iClientsOnline = 0;
 		u_int uiLocalPort = DefaultPort;
 		bool isReceiveThread = false;
@@ -27,8 +27,10 @@ class Server{
 		Server(u_int uiPortNumber) : uiLocalPort(uiPortNumber) {}
 		~Server(){
 			close(sckMainSocket);
-			if(sslCTX != nullptr){
+			sckMainSocket = -1;
+			if(sslCTX){
 				SSL_CTX_free(sslCTX);
+				sslCTX = nullptr;
 			}
 		}
 		bool Listen(u_int);

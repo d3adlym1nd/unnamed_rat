@@ -658,7 +658,7 @@ bool Server::Listen(u_int uiMaxq){
 		error();
 		return false;
 	}
-	sslCTX = SSL_CTX_new(SSLv23_server_method());
+	sslCTX = SSL_CTX_new(TLS_server_method());
 	if(sslCTX == nullptr){
 		ERR_print_errors_fp(stderr);
 		return false;
