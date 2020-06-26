@@ -163,7 +163,7 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 		int iBytesRead = 0, iBufferSize = 255;
 		char *cFileBuffer = new char[iBufferSize];
 		if(SSL_read(Clients[iClientID]->sslSocket, cFileSizeBuffer, 19) > 0){
-			if(strcmp(cFileSizeBuffer, CommandCodes::cFileTransferCancel) == 0){
+			if(strncmp(cFileSizeBuffer, CommandCodes::cFileTransferCancel, strlen(CommandCodes::cFileTransferCancel)) == 0){
 				std::cout<<"Unable to download remote file\n";
 				return false;
 			}
@@ -255,7 +255,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 											isReadingShell = false;
 											break;
 										}
-										if(strcmp(cCmdLine, "exit\n") == 0){
+										if(strncmp(cCmdLine, "exit\n", 5) == 0){
 											std::cout<<"\nBye\n";
 											isReadingShell = false;
 											break;
@@ -966,7 +966,7 @@ void Server::threadRemoteCmdOutput(int iClientID){
 			iBytes = SSL_read(Clients[iClientID]->sslSocket, cCmdBuffer, 1023);
 			if(iBytes > 0){
 				cCmdBuffer[iBytes] = '\0';
-				if(strcmp(cCmdBuffer, CommandCodes::cShellEnd) == 0){
+				if(strncmp(cCmdBuffer, CommandCodes::cShellEnd, strlen(CommandCodes::cShellEnd)) == 0){
 					std::cout<<"\nRemote shell ends\n";
 					isReadingShell = false;
 					break;
