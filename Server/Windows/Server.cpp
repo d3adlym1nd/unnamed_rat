@@ -1009,11 +1009,11 @@ void Server::Help(const std::string strHelp, int iOS){
 		if(iOS == 1){
 			vFields.push_back("shell,Start interactive shell with client,-c /path/to/shell");
 			vFields.push_back("download,Download a remote file,-r /path/to/file");
-			vFields.push_back("upload,Upload a local file to client,-l /path/to/localfile,-r /path/remotefile");
+			vFields.push_back("upload,Upload a local file to client,-l C:\\path\\to\\localfile,-r /path/remotefile");
 		} else {
 			vFields.push_back("shell,Start interactive shell with client,-c C:\\path\\to\\shell.exe");
 			vFields.push_back("download,Download a remote file,-r C:\\path\\to\\file.txt");
-			vFields.push_back("upload,Upload a local file to client,-l /path/to/localfile,-r C:\\remote\\filename");
+			vFields.push_back("upload,Upload a local file to client,-l C:\\path\\to\\localfile,-r C:\\remote\\filename");
 		}
 		vFields.push_back("httpd,Force client to download file from a http/https server,-u url,-r yes/no (Execute)");
 		vFields.push_back("info,Retrieve basic info from client,-b (Basic)");
