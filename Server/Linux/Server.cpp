@@ -749,6 +749,10 @@ void Server::threadListener(){
 			if(Clients[iClientCount] == nullptr){
 				std::cout<<"Error allocating memory for new client\n";
 				error();
+				if(strTmpip != nullptr){
+					delete[] strTMPip;
+					strTMPip = nullptr; 
+				}
 				continue;
 			}
 			Clients[iClientCount]->sckSocket = dup(sckTMP);
@@ -757,6 +761,10 @@ void Server::threadListener(){
 			if(SSL_accept(Clients[iClientCount]->sslSocket) == -1){
 				error();
 				FreeClient(iClientCount);
+				if(strTmpip != nullptr){
+					delete[] strTMPip;
+					strTMPip = nullptr; 
+				}
 				continue;
 			}
 			
