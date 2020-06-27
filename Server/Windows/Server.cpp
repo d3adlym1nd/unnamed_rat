@@ -47,6 +47,10 @@ void Server::FreeClient(int iClientID){
 			SSL_shutdown(Clients[iClientID]->sslSocket);
 			Clients[iClientID]->sslSocket = nullptr;
 		}
+		if(Clients[iClientID]->sckClient){
+			BIO_closesocket(Clients[iClientID]->sckClient);
+			Clients[iClientID]->sckClient = -1;
+		}
 		Clients[iClientID]->strIP.erase(Clients[iClientID]->strIP.begin(), Clients[iClientID]->strIP.end());
 		delete Clients[iClientID];
 		Clients[iClientID] = nullptr;
