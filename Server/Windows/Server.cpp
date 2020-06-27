@@ -49,8 +49,8 @@ void Server::FreeClient(int iClientID){
 		}
 		if(Clients[iClientID]->sckClient){
 			BIO_closesocket(Clients[iClientID]->sckClient);
-			Clients[iClientID]->sckClient = -1;
-		}
+            		Clients[iClientID]->sckClient = -1;
+        	}
 		Clients[iClientID]->strIP.erase(Clients[iClientID]->strIP.begin(), Clients[iClientID]->strIP.end());
 		delete Clients[iClientID];
 		Clients[iClientID] = nullptr;
@@ -673,7 +673,7 @@ bool Server::Listen(){
 		OPENSSL_free(cPort);
 		return false;
 	}
-	if(!BIO_listen(sckSocket, BIO_ADDRINFO_address(bRes), 0)){
+	if(!BIO_listen(sckSocket, BIO_ADDRINFO_address(bRes), BIO_SOCK_NONBLOCK | BIO_SOCK_REUSEADDR)){
 		std::cout<<"bio listen\n";
 		error();
 		BIO_ADDRINFO_free(bRes);
@@ -715,7 +715,6 @@ void Server::thStartHandler(){
 
 //handle incomming connections
 void Server::threadListener(){
-	//std::cout<<"Listener thread started\n";
 	int iClientCount = 0, uiOldValue = 0;
 	bool uiReachMax = false;
 	while(isReceiveThread && !bSignalFlag){  //receiver loop
@@ -803,6 +802,11 @@ void Server::threadListener(){
 				iClientCount = uiOldValue;
 			} else {
 				iClientCount++;
+			}
+		} else {
+			if(cRemoteAddress != nullptr){
+				delete[] cRemoteAddress;
+				cRemoteAddress = nullptr;
 			}
 		}
 		
@@ -1029,12 +1033,4 @@ void Server::Help(const std::string strHelp, int iOS){
 		Misc::PrintTable(vHeaders, vFields, ',');
 		return;
 	}
-}
-
-//beej guide network programming
-void *get_int_addr(struct sockaddr *sa){
-	if(sa->sa_family == AF_INET){
-		return &(((struct sockaddr_in*)sa)->sin_addr);
-	}
-	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
