@@ -6,8 +6,11 @@
 //#define _NOTIFY
 
 //LANG
-#define ES
-//#define EN
+//#define ES
+#define EN
+
+//Termux?
+//#define _TERMUX
 
 #include<iostream>
 #include<thread>

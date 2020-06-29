@@ -986,6 +986,47 @@ void Server::threadRemoteCmdOutput(int iClientID){
 }
 
 void Server::Help(const std::string strHelp, int iOS){
+	#ifdef _TERMUX
+	if(strHelp == "main"){
+		std::cout<<Misc::Msg(109);
+		std::cout<<Misc::Msg(82);
+		std::cout<<Misc::Msg(83);
+		std::cout<<Misc::Msg(111);
+		std::cout<<Misc::Msg(112);
+		std::cout<<Misc::Msg(113);
+		std::cout<<"\n";
+		std::cout<<Misc::Msg(90);
+		std::cout<<Misc::Msg(91);
+		std::cout<<Misc::Msg(92);
+		std::cout<<Misc::Msg(93);
+		std::cout<<Misc::Msg(94);
+		std::cout<<Misc::Msg(95);
+		return;
+	}
+	if(strHelp == "client"){
+		std::cout<<Misc::Msg(96);
+		if(iOS == 1){
+			std::cout<<Misc::Msg(114);
+			std::cout<<Misc::Msg(115);
+			std::cout<<Misc::Msg(116);
+		} else {
+			std::cout<<Misc::Msg(119);
+			std::cout<<Misc::Msg(120);
+			std::cout<<Misc::Msg(121);
+		}
+		std::cout<<Misc::Msg(117);
+		std::cout<<Misc::Msg(118);
+		std::cout<<Misc::Msg(110)<<"\n";
+		return;
+	}
+	if(strHelp == "massive"){
+		std::cout<<Misc::Msg(96);
+		std::cout<<Misc::Msg(122);
+		std::cout<<Misc::Msg(123)<<"\n";
+		std::cout<<Misc::Msg(110)<<"\n";
+		return;
+	}
+	#else
 	std::vector<std::string> vHeaders, vFields;
 	if(strHelp == "main"){
 		std::cout<<Misc::Msg(109);
@@ -1004,6 +1045,7 @@ void Server::Help(const std::string strHelp, int iOS){
 		std::cout<<Misc::Msg(93);
 		std::cout<<Misc::Msg(94);
 		std::cout<<Misc::Msg(95);
+		std::cout<<"\n";
 		return;
 	}
 	if(strHelp == "client"){
@@ -1036,6 +1078,7 @@ void Server::Help(const std::string strHelp, int iOS){
 		std::cout<<Misc::Msg(110)<<"\n";
 		return;
 	}
+	#endif
 }
 
 //beej guide network programming

@@ -167,17 +167,25 @@ namespace Misc{
 	}
 	
 	void ProgressBar(u64 value, u64 total){
-        int h = 0, hh = 0;
+        u_int h = 0, hh = 0;
         char pb[101];
         memset(pb, 0, 101);
-        int value2 = ((float)value / (float)total) *100;
+        u_int value2 = ((float)value / (float)total) *100;
+        #ifdef _TERMUX
+        for(h=0; h<25; h++){
+		#else
         for(h=0; h<50; h++){
-                for(hh=h; hh<(value2 / 2); hh++, h++){
+        #endif
+		        for(hh=h; hh<(value2 / 2); hh++, h++){
                         pb[hh] = '#';
                 }
                 pb[h] = '_';
         }
+        #ifdef _TERMUX
+        pb[25] = '\0';
+        #else
         pb[50] = '\0';
+        #endif
         std::cout<<'\r'<<pb<<'['<<value2<<"%]";
 	}
 	
@@ -416,7 +424,50 @@ namespace Misc{
 				return "\nsalir - Cierra el programa\n";
 			case 110:
 				return "\nsalir - Regresa a shell principal\n";
-			
+			#ifdef _TERMUX
+			case 111:
+				return "-l  - Muestra clientes conectados\n";
+			case 112:
+				return "-a  - Comando a ejecutar en el cliente\n      interactuar | cerrar\n";
+			case 113:
+				return "-c  - Cliente en el cual correr el comando\n      numero | *\n";
+			case 114:
+				return "subir     - Sube un archivo al cliente\n"\
+					   "            -l /archivo/local\n"\
+					   "            -r /archivo/remoto\n";
+			case 115:
+				return "descargar - Descarga un archivo del cliente\n"\
+					   "            -r /archivo/remoto\n";
+			case 116:
+				return "shell     - Invoca una shell interactiva inversa\n"\
+				       "            -c /ruta/a/shell\n";
+			case 117:
+				return "httpd     - Fuerza al cliente a descargar un archivo desde una url\n"\
+					   "            -u http://url/archivo\n"\
+					   "            -r si | no (Ejecutar)\n";
+			case 118:
+				return "info      - Recopila informacion basica del cliente\n"\
+					   "            -b (Basica)\n";
+			case 119:
+				return "subir     - Sube un archivo al cliente\n"\
+					   "            -l /archivo/local\n"\
+					   "            -r C:\\archivo\\remoto\n";
+			case 120:
+				return "descargar - Descarga un archivo del cliente\n"\
+					   "            -r C:\\archivo\\remoto\n";
+			case 121:
+				return "shell     - Invoca una shell interactiva inversa\n"\
+				       "            -c C:\\ruta\\a\\shell\n";
+			case 122:
+				return "httpd  - Fuerza a los clientes a descargar un archivo desde una url\n"\
+					   "         -u http://url/archivo\n"\
+					   "         -r si | no (Ejecutar)\n"\
+					   "         -o windows | linux | *\n";
+			case 123:
+				return "subir  - Sube un archivo a todos los clientes\n"\
+					   "         -l /local/archivo\n"\
+					   "         -r si | no (Ejecutar)\n";
+			#endif
 			default:
 				return "?";
 		}
@@ -646,6 +697,52 @@ namespace Misc{
 				return "\nexit - Close the program\n";
 			case 110:
 				return "\nexit - Exit to main shell\n";
+			#ifdef _TERMUX
+			case 111:
+				return "-l  - Show connected clients\n";
+			case 112:
+				return "-a  - Action to execute on client\n"\
+				       "      interact | close\n";
+			case 113:
+				return "-c  - Client to run selected action\n"\
+				       "      number | *\n";
+			case 114:
+				return "upload     - Upload a local file to client\n"\
+					   "            -l /local/file\n"\
+					   "            -r /remote/file\n";
+			case 115:
+				return "download   - Dowload a file from client\n"\
+					   "            -r /remote/file\n";
+			case 116:
+				return "shell     - Spawn an interactiva reverse shell\n"\
+				       "            -c /path/to/shell\n";
+			case 117:
+				return "httpd     - Force client to download a file from url\n"\
+					   "            -u http://url/file\n"\
+					   "            -r yes | no (Execute)\n";
+			case 118:
+				return "info      - Retrieve basic information from client\n"\
+					   "            -b (Basic)\n";
+			case 119:
+				return "upload     - Upload a local file to client\n"\
+					   "            -l /local/file\n"\
+					   "            -r C:\\remote\\file\n";
+			case 120:
+				return "download   - Dowload a file from client\n"\
+					   "            -r C:\\remote\\file\n";
+			case 121:
+				return "shell     - Spawn an interactiva reverse shell\n"\
+				       "            -c C:\\path\\to\\shell\n";
+			case 122:
+				return "httpd  - Force clients to download a file from url\n"\
+					   "         -u http://url/file\n"\
+					   "         -r yes | no (Execute)\n"\
+					   "         -o windows | linux | *\n";
+			case 123:
+				return "upload - Upload a file to all clients\n"\
+					   "         -l /local/file\n"\
+					   "         -r yes | no (Execute)\n";
+			#endif
 			default:
 				return "?";
 		}

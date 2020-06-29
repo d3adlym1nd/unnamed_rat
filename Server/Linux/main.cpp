@@ -13,6 +13,14 @@ int main(int argc, char **argv){
 			std::cout<<argv[0]<<" port\n";
 			return 0;
 	}
+	#ifdef _TERMUX
+	#ifdef ES
+	std::cout<<"\n\tunnamedRAT\n\tHerramienta de Administracion remota\n\tpor d3adlym1nd\n";
+	#endif
+	#ifdef EN
+	std::cout<<"\n\tunnamedRAT\n\tRemote Access Tool\n\tby d3adlym1nd\n";
+	#endif
+	#else
     const char *cBanner = BrightBlack "\n" \
 "                                              __              __\n"\
 "  __  ______  ____  ____ _____ ___  ___  ____/ /  _________ _/ /_\n"\
@@ -30,7 +38,7 @@ int main(int argc, char **argv){
 	std::cout<<"Herramienta de Acceso Remoto desde linea de comandos\n"\
 	"                      por " BrightCyan "d3adlym1nd" CReset "\n";
 	#endif
-
+	#endif
 	bSignalFlag = false;
 	OpenSSL_add_ssl_algorithms();
 	SSL_load_error_strings();

@@ -982,6 +982,40 @@ void Server::threadRemoteCmdOutput(int iClientID){
 }
 
 void Server::Help(const std::string strHelp, int iOS){
+	#ifdef _TERMUX
+	if(strHelp == "main"){
+		std::cout<<Misc::Msg(109);
+		std::cout<<Misc::Msg(82);
+		std::cout<<Misc::Msg(83);
+		std::cout<<Misc::Msg(111);
+		std::cout<<Misc::Msg(112);
+		std::cout<<Misc::Msg(113);
+		std::cout<<Misc::Msg(90);
+		std::cout<<Misc::Msg(91);
+		std::cout<<Misc::Msg(92);
+		std::cout<<Misc::Msg(93);
+		std::cout<<Misc::Msg(94);
+		std::cout<<Misc::Msg(95);
+		return;
+	}
+	if(strHelp == "client"){
+		if(iOS == 1){
+			//linux
+			vFields.push_back(Misc::Msg(99));
+			vFields.push_back(Misc::Msg(100));
+			vFields.push_back(Misc::Msg(101));
+		} else {
+			//windows
+			vFields.push_back(Misc::Msg(102));
+			vFields.push_back(Misc::Msg(103));
+			vFields.push_back(Misc::Msg(104));
+		}
+		return;
+	}
+	if(strHelp == "massive"){
+		
+	}
+	#else
 	std::vector<std::string> vHeaders, vFields;
 	if(strHelp == "main"){
 		std::cout<<Misc::Msg(109);
@@ -1032,4 +1066,5 @@ void Server::Help(const std::string strHelp, int iOS){
 		std::cout<<Misc::Msg(110)<<"\n";
 		return;
 	}
+	#endif
 }
