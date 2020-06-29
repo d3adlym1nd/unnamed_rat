@@ -9,8 +9,8 @@ Herramienta de Administracion Remota multiplataforma desde linea de comandos (RA
 - libnotify (Notificaciones de escritorio) - Opcional
 
 ### Funciones incluidas en el cliente
-- Conexion a atravez de TLS
-- Transferencia de archivo
+- Conexion atravez de TLS
+- Transferencia de archivos
 - Shell inversa interactiva
 - Recopilacion de informacion
 - Descarga de archivos de servidores HTTP(s)
@@ -33,7 +33,7 @@ Para habilitar la salida de texto con colores, o las notificaciones de escritori
 //Solo linux
 #define _NOTIFY
 ```
-Para usar el exta `notify` se debe instalar `libnotify` en el sistema, y compilar el programa con el archivo `makenotify`. Asi: `make -f makenotify`
+Para usar la opcion de `notify` se debe instalar `libnotify` en el sistema, y compilar el programa con el archivo `makenotify`. Asi: `make -f makenotify`
 
 ### Compilando (Cliente)
 Edita el archivo `headers.hpp` y comenta/descomenta esta linea:
@@ -47,27 +47,27 @@ Cli->Connect("YOUR HOST", "PORT")
 con el host y puerto al cual el cliente se conectara. Si la opcion `#define _DEBUG` se dejara descomentada, entonces el host y el puerto se deben pasar como argumentos al cliente. Ejemplo `./Client 127.0.0.1 31337`. Compilar con `make`.
 
 ### Compilando (Servidor)
-Generar el certificado y llave privada en el servidor co `openssl req -x509 -newkey rsa:4096 -out cacer.pem -outform PEM -days 1825 -nodes`, copia ambos archivos `cacer.pem` y `prikvey.pem` en el directorio del servidor.
-Edita el archivo `headers.hpp` y modifica la linea 
+Generar el certificado y llave privada en el servidor con `openssl req -x509 -newkey rsa:4096 -out cacer.pem -outform PEM -days 1825 -nodes`, copia ambos archivos `cacer.pem` y `prikvey.pem` en el directorio del servidor.
+Edita el archivo `headers.hpp` y modifica la linea
 ```cpp
 #define Max_Clients 10
 ```
-si quieres manejar mas de 10 clientes. Compilar con `make`
+si quieres manejar mas de 10 clientes. Compilar con `make`.
 
 ### Comandos del servidor
-Escribe `ayuda`, `?`, o `aiuda` a cualquier momento(a excepcion de la shell inversa) para mostrar los comandos disponibles
+Escribe `ayuda`, `?`, o `aiuda` a cualquier momento(a excepcion de la shell inversa) para mostrar los comandos disponibles.
 
 #### Shell Principal
-Comando | Acerca
+Comando | Descripcion
 ------- | ------
 cli | Ejecuta acciones en los clientes
 ayuda, ?, aiuda | Muestra comandos disponibles
 salir | Finaliza el servidor
 
 #### Shell Cliente (Modo interactivo)
-Commando | Acerca
+Commando | Descripcion
 -------- | ------
-subir | Sube un archivo local al cliente remoto
+subir | Sube un archivo local al cliente
 descargar | Descarga archivos del cliente
 shell | Invoca un shell interactiva inversa
 httpd | Fuerza al cliente a descargar un archivo desde una url
