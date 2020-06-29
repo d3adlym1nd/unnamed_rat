@@ -23,7 +23,7 @@ Edit `headers.hpp` and uncomment the language you want to use in the program. La
 
 //English
 #define EN
-``
+```
 
 ### Misc
 To enable colored output or desktop notification(Linux) on server uncomment the followig lines respectively on `headers.hpp` file 
@@ -54,6 +54,17 @@ Edit `headers.hpp` and modify the line
 #define Max_Clients 10
 ```
  if you want to handle more than 10 clients. Build in server root directory with `make`.
+
+### Server (Termux)
+To use under termux you have to install dependencies with:
+```sh
+pkg install openssl openssl-tool make git nano
+```
+After that edit `headers.hpp` with `nano` and uncomment 
+```cpp
+#define _TERMUX
+```
+ generate certificate and private key as explained above, finally compile with `make`.
 
 ### Server Commands
 Type `help`, `?` or `aiuda` at any time (not in reverse shell) to show available commands
@@ -87,9 +98,17 @@ exit | Close interactive session (Not connection)
 Any contribution its welcome!!!
 
 ## Screenshots
+![](https://i.imgur.com/r6FewoQ.jpg)
+![](https://i.imgur.com/fUgwlZx.jpg)
+![](https://i.imgur.com/AZqPXmg.jpg)
+
 ![](https://i.imgur.com/p04wBN1.jpg)
+
 ![](https://i.imgur.com/NF7cQUC.jpg)
+
 ![](https://i.imgur.com/7Q4yjxh.jpg)
+
 ![](https://i.imgur.com/TNRV7kh.jpg)
+
 # DISCLAIMER
 This software is for testing purposes only, designed to run in a controlled environment, it should not be run in a real-world scenario. The developer is not responsible for any damage caused or legal repercussions. Use it at your own risk.
