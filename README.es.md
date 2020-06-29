@@ -93,6 +93,7 @@ salir | Cierra sesion interactiva (No la conexion)
 - Arch
 - Windows 7
 - Windows 10
+- Android 9 (Termux)
 
 ## Contribuciones
 Cualquier tipo de contribucion es bienvenida!!!
