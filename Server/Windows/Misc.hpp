@@ -12,5 +12,6 @@ namespace Misc{
 	u64 GetFileSize(std::string);
 	void ProgressBar(u64 value, u64 total);
 	void Free(char*&, std::size_t);
+	const char* Msg(int);
 }
 #endif

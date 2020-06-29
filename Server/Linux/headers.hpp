@@ -5,6 +5,10 @@
 #define _COLOR
 //#define _NOTIFY
 
+//LANG
+#define ES
+//#define EN
+
 #include<iostream>
 #include<thread>
 #include<mutex>

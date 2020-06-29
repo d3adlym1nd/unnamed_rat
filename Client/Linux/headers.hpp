@@ -1,7 +1,7 @@
 #ifndef __HEADERS
 #define __HEADERS
 
-//#define _DEBUG  uncomment this to build "version with verbose output"
+#define _DEBUG  //uncomment this to build "version with verbose output"
 
 #ifdef _DEBUG
 #include<iostream>

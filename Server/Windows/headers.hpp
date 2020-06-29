@@ -3,6 +3,11 @@
 
 //Uncomment to make program beautiful
 //#define _COLOR
+
+//LANG
+#define ES
+//#define EN
+
 #include<ws2tcpip.h>
 #include<windows.h>
 #include<iostream>

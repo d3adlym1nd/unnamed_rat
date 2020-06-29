@@ -19,16 +19,30 @@ int main(int argc, char **argv){
 " / / / / __ \\/ __ \\/ __ `/ __ `__ \\/ _ \\/ __  /  / ___/ __ `/ __/\n"\
 "/ /_/ / / / / / / / /_/ / / / / / /  __/ /_/ /  / /  / /_/ / /_\n"\
 "\\__,_/_/ /_/_/ /_/\\__,_/_/ /_/ /_/\\___/\\__,_/  /_/   \\__,_/\\__/\n\n" CReset\
-"               Command-Line Remote Access Tool\n"\
-"                      by " BrightCyan "d3adlym1nd" CReset "\n" ;
-    	std::cout<<cBanner<<'\n';
+"               ";
+
+    std::cout<<cBanner;
+	#ifdef EN
+	std::cout<<"Command-Line Remote Access Tool\n"\
+	"                      by " BrightCyan "d3adlym1nd" CReset "\n";
+	#endif
+	#ifdef ES
+	std::cout<<"Herramienta de Acceso Remoto desde linea de comandos\n"\
+	"                      por " BrightCyan "d3adlym1nd" CReset "\n";
+	#endif
+
 	bSignalFlag = false;
 	OpenSSL_add_ssl_algorithms();
 	SSL_load_error_strings();
 
 	#ifdef _NOTIFY
 	if(!notify_init("unnamed")){
+		#ifdef EN
         std::cout<<"Error initializing libnotify\n";
+        #endif
+        #ifdef ES
+        std::cout<<"Error inicializando libnotify\n";
+        #endif
         return -1;
 	}
 	#endif
