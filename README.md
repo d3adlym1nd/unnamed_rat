@@ -93,6 +93,7 @@ exit | Close interactive session (Not connection)
 - Arch
 - Windows 7
 - Windows 10
+- Android 9 (Termux)
 
 ## Contribute
 Any contribution its welcome!!!
