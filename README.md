@@ -63,5 +63,10 @@ Type `help`, `?` or `aiuda` at any time (not in reverse shell) to show available
 ## Contribute
 Any contribution its welcome!!!
 
+## Screenshots
+![](https://i.imgur.com/p04wBN1.jpg)
+![](https://i.imgur.com/NF7cQUC.jpg)
+![](https://i.imgur.com/7Q4yjxh.jpg)
+![](https://i.imgur.com/TNRV7kh.jpg)
 # DISCLAIMER
 This software is for testing purposes only, designed to run in a controlled environment, it should not be run in a real-world scenario. The developer is not responsible for any damage caused or legal repercussions. Use it at your own risk.
