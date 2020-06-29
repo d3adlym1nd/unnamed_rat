@@ -54,6 +54,18 @@ Edita el archivo `headers.hpp` y modifica la linea
 ```
 si quieres manejar mas de 10 clientes. Compilar con `make`.
 
+
+### Servidor (Termux)
+Para usarlo en termux primero se instala el software requerido:
+```sh
+pkg install openssl openssl-tool make git nano
+```
+Luego editar el archivo `headers.hpp` con `nano` y descomentar lo siguiente:
+```cpp
+#define _TERMUX
+```
+ generar el certificado y la llave privada como se explica arriba, finalmente compilar con `make`.
+
 ### Comandos del servidor
 Escribe `ayuda`, `?`, o `aiuda` a cualquier momento(a excepcion de la shell inversa) para mostrar los comandos disponibles.
 
@@ -86,9 +98,17 @@ salir | Cierra sesion interactiva (No la conexion)
 Cualquier tipo de contribucion es bienvenida!!!
 
 ## Capturas de pantalla
+![](https://i.imgur.com/r6FewoQ.jpg)
+![](https://i.imgur.com/fUgwlZx.jpg)
+![](https://i.imgur.com/AZqPXmg.jpg)
+
 ![](https://i.imgur.com/p04wBN1.jpg)
+
 ![](https://i.imgur.com/NF7cQUC.jpg)
+
 ![](https://i.imgur.com/7Q4yjxh.jpg)
+
 ![](https://i.imgur.com/TNRV7kh.jpg)
+
 # Descargo de responsabilidad (DISCLAIMER)
 Este software esta hecho con propositos de pruebas solamente, diseñado para ejecutarse en un ambiente controlado, no debe ejecutar en un ambiente de trabajo real. El desarollador no es responsable de cualquier daño o repercusiones legales. Usalo bajo tu propio riesgo.
