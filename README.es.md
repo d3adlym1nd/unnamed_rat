@@ -1,4 +1,4 @@
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![Platforms: linux-64 | win-64](https://img.shields.io/badge/platform-linux--64%20|%20win--64-success.svg)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![Platforms: linux-64 | win-64 | android 9](https://img.shields.io/badge/platform-linux--64%20|%20win--64%20|%20android-success.svg)
 
 ![English Documentation](https://github.com/d3adlym1nd/unnamed_rat/blob/master/README.md)
 # unnamed_rat
