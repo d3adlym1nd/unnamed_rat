@@ -55,6 +55,10 @@ Edit `headers.hpp` and modify the line
 ```
  if you want to handle more than 10 clients. Build in server root directory with `make`.
 
+### Building Server/Client on Windows
+First install Openssl using one of the pre-compiled binaries from here: https://wiki.openssl.org/index.php/Binaries. Download msys2 from here: https://www.msys2.org/. Open the msys2 shell and update packages list with `pacman -Syu`, after that, install requiered packages with: `pacman -S mingw-w64-x86_64-toolchain`, then compile with `mingw32-make`.
+
+
 ### Server (Termux)
 To use under termux you have to install dependencies with:
 ```sh
