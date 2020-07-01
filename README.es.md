@@ -15,7 +15,7 @@ Herramienta de Administracion Remota multiplataforma desde linea de comandos (RA
 - Recopilacion de informacion
 - Descarga de archivos de servidores HTTP(s)
 
-### Languaje
+### Idioma
 Edita el fichero `headers.hpp` y descomenta el lenguaje que quieres usar en el programa.
 ```cpp
 //Español
@@ -54,6 +54,8 @@ Edita el archivo `headers.hpp` y modifica la linea
 ```
 si quieres manejar mas de 10 clientes. Compilar con `make`.
 
+### Compilando Servidor/Cliente en Windows
+Primero instala Openssl usando uno de los bianrios pre-compilados desde aqui: https://wiki.openssl.org/index.php/Binaries. Descarga msys2 desde aqui: https://www.msys2.org/. Abre la shell de msys2 y actualiza la lista de paquetes con: `pacman -Syu`, despues instala los paquetes requeridos con: `pacman -S mingw-w64-x86_64-toolchain`, luego compila con: `mingw32-make`.
 
 ### Servidor (Termux)
 Para usarlo en termux primero se instala el software requerido:
